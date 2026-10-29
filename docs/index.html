@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>한국 트렌드 레이더</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --card: #ffffff; --ink: #1c1c1a; --muted: #6b6b66; --line: #e4e4df;
+    --up: #0a7d4f; --down: #c2402d; --accent: #2a5bd7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #151514; --card: #1f1f1d; --ink: #ecece8; --muted: #9a9a93; --line: #34342f;
+            --up: #4cc38a; --down: #ef7a68; --accent: #7aa2ff; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+  .banner { background: #fff4d6; color: #5a4300; border-radius: 8px; padding: 10px 14px;
+            font-size: 13px; margin-bottom: 16px; display: none; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .tab { border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 999px;
+         padding: 6px 14px; font-size: 14px; cursor: pointer; }
+  .tab[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .card h2 { font-size: 15px; margin: 0 0 12px; }
+  .full { grid-column: 1 / -1; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.row { cursor: pointer; }
+  tr.row:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  tr.sel { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  .up { color: var(--up); } .down { color: var(--down); } .na { color: var(--muted); }
+  .kw { color: var(--muted); font-size: 12px; }
+  svg { width: 100%; height: auto; display: block; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
+  .note { color: var(--muted); font-size: 12px; margin-top: 12px; line-height: 1.6; }
+  #tip { position: fixed; pointer-events: none; background: var(--ink); color: var(--bg); font-size: 12px;
+         padding: 6px 8px; border-radius: 6px; display: none; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>한국 트렌드 레이더</h1>
+  <div class="sub" id="meta">불러오는 중…</div>
+  <div class="banner" id="demo">지금 보이는 값은 <b>샘플(가짜) 데이터</b>입니다. GitHub Actions에서 실제 수집이 한 번 돌면 실데이터로 바뀝니다.</div>
+  <div class="tabs" id="tabs"></div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>이번 주 급상승 (직전 7일 대비)</h2>
+      <table id="rising"></table>
+    </div>
+    <div class="card">
+      <h2>추세 가속 (직전 4주 평균 대비)</h2>
+      <table id="momentum"></table>
+    </div>
+    <div class="card full">
+      <h2 id="chartTitle">검색 관심도 추이</h2>
+      <div id="chart"></div>
+      <div class="legend" id="legend"></div>
+      <div class="note">값은 네이버 데이터랩 검색 지수(해당 섹션 내 최고점 = 100)입니다. 섹션이 다르면 값을 직접 비교할 수 없고, 증감률은 같은 그룹의 과거 대비입니다. 그래프는 7일 이동평균입니다.</div>
+    </div>
+  </div>
+</div>
+<div id="tip"></div>
+
+<script>
+const COLORS = ["#2a5bd7", "#e07a1f", "#1b9e77", "#c2408f", "#7a6ad8"];
+let DATA, current = 0, selected = null;
+
+const $ = (id) => document.getElementById(id);
+const fmtPct = (v) => v == null ? '<span class="na">–</span>'
+  : `<span class="${v >= 0 ? 'up' : 'down'}">${v >= 0 ? '▲' : '▼'} ${Math.abs(v).toFixed(1)}%</span>`;
+
+function smooth(vals, n = 7) {
+  return vals.map((_, i) => {
+    const s = vals.slice(Math.max(0, i - n + 1), i + 1);
+    return s.reduce((a, b) => a + b, 0) / s.length;
+  });
+}
+
+function rankTable(el, groups, key) {
+  const rows = [...groups].filter(g => g[key] != null).sort((a, b) => b[key] - a[key]);
+  el.innerHTML = `<tr><th>그룹</th><th class="num">최근 7일 지수</th><th class="num">변화</th></tr>` +
+    rows.map(g => `<tr class="row ${g.name === selected ? 'sel' : ''}" data-n="${g.name}">
+      <td>${g.name}<div class="kw">${g.keywords.join(', ')}</div></td>
+      <td class="num">${g.last7.toFixed(1)}</td><td class="num">${fmtPct(g[key])}</td></tr>`).join('');
+  el.querySelectorAll('tr.row').forEach(tr => tr.onclick = () => {
+    selected = selected === tr.dataset.n ? null : tr.dataset.n; render();
+  });
+}
+
+function drawChart(sec) {
+  const W = 960, H = 300, m = { l: 36, r: 12, t: 10, b: 24 };
+  const series = sec.groups.map((g, i) => ({ name: g.name, color: COLORS[i % COLORS.length],
+    pts: g.series.map(p => p.period), vals: smooth(g.series.map(p => p.ratio)) }));
+  const n = series[0]?.pts.length || 0;
+  if (!n) { $('chart').innerHTML = '<div class="na">데이터 없음</div>'; return; }
+  const x = (i) => m.l + (W - m.l - m.r) * i / (n - 1);
+  const y = (v) => H - m.b - (H - m.t - m.b) * v / 100;
+  let s = `<svg viewBox="0 0 ${W} ${H}" id="svg">`;
+  [0, 25, 50, 75, 100].forEach(t => {
+    s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)"/>` +
+         `<text x="${m.l - 6}" y="${y(t) + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${t}</text>`;
+  });
+  [0, Math.floor(n / 2), n - 1].forEach(i => {
+    s += `<text x="${x(i)}" y="${H - 6}" text-anchor="${i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}" font-size="11" fill="var(--muted)">${series[0].pts[i].slice(5)}</text>`;
+  });
+  series.forEach(se => {
+    const dim = selected && selected !== se.name;
+    s += `<polyline fill="none" stroke="${se.color}" stroke-width="${selected === se.name ? 3 : 2}" opacity="${dim ? 0.18 : 1}"
+      points="${se.vals.map((v, i) => `${x(i)},${y(v)}`).join(' ')}"/>`;
+  });
+  s += `<line id="cur" y1="${m.t}" y2="${H - m.b}" stroke="var(--muted)" stroke-dasharray="3 3" style="display:none"/></svg>`;
+  $('chart').innerHTML = s;
+  $('legend').innerHTML = series.map(se => `<span><i style="background:${se.color}"></i>${se.name}</span>`).join('');
+
+  const svg = $('svg'), tip = $('tip'), cur = $('cur');
+  svg.onmousemove = (e) => {
+    const r = svg.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width * W;
+    const i = Math.max(0, Math.min(n - 1, Math.round((px - m.l) / (W - m.l - m.r) * (n - 1))));
+    cur.setAttribute('x1', x(i)); cur.setAttribute('x2', x(i)); cur.style.display = '';
+    tip.style.display = 'block'; tip.style.left = (e.clientX + 12) + 'px'; tip.style.top = (e.clientY + 12) + 'px';
+    tip.innerHTML = `${series[0].pts[i]}<br>` + series.map(se => `${se.name}: ${se.vals[i].toFixed(1)}`).join('<br>');
+  };
+  svg.onmouseleave = () => { tip.style.display = 'none'; cur.style.display = 'none'; };
+}
+
+function render() {
+  const sec = DATA.sections[current];
+  document.querySelectorAll('.tab').forEach((t, i) => t.setAttribute('aria-pressed', i === current));
+  rankTable($('rising'), sec.groups, 'wow_pct');
+  rankTable($('momentum'), sec.groups, 'momentum_pct');
+  $('chartTitle').textContent = `${sec.title} · 검색 관심도 추이`;
+  drawChart(sec);
+}
+
+fetch('data.json', { cache: 'no-store' }).then(r => r.json()).then(d => {
+  DATA = d;
+  $('meta').textContent = `${d.source} · 기간 ${d.range[0]} ~ ${d.range[1]} · 갱신 ${d.updated.replace('T', ' ')} (KST)`;
+  if (d.demo) $('demo').style.display = 'block';
+  $('tabs').innerHTML = d.sections.map((s, i) =>
+    `<button class="tab" aria-pressed="false" data-i="${i}">${s.title}</button>`).join('');
+  document.querySelectorAll('.tab').forEach(b => b.onclick = () => { current = +b.dataset.i; selected = null; render(); });
+  render();
+}).catch(() => { $('meta').textContent = 'data.json을 불러오지 못했습니다.'; });
+</script>
+</body>
+</html>
