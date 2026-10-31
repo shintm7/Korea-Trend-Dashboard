@@ -1,1 +1,138 @@
-
+probe summary
+RSS 피드 점검 (2026-10-31 15:18 KST)
+전체 126개 중 정상 82개, 정지 의심 28개, 실패 16개
+활성(enabled) 피드 중 정상 58/86
+판정	id	활성	상태	HTTP	항목	최신기사(시간 전)	robots	오류
+실패	ddanzi-all	-	robots_blocked		0		blocked	robots.txt가 이 주소를 막음
+실패	kmib-all	-	robots_unavailable		0		unavailable	robots.txt를 확인하지 못함
+실패	kmib-culture	O	robots_unavailable		0		unavailable	robots.txt를 확인하지 못함
+실패	kmib-culture-2	O	robots_unavailable		0		unavailable	robots.txt를 확인하지 못함
+실패	kmib-economy	O	robots_unavailable		0		unavailable	robots.txt를 확인하지 못함
+실패	kmib-international	O	robots_unavailable		0		unavailable	robots.txt를 확인하지 못함
+실패	kmib-society	O	robots_unavailable		0		unavailable	robots.txt를 확인하지 못함
+실패	kmib-sports	O	robots_unavailable		0		unavailable	robots.txt를 확인하지 못함
+실패	mediatoday-all	-	robots_blocked		0		blocked	robots.txt가 이 주소를 막음
+실패	mediatoday-culture	-	robots_blocked		0		blocked	robots.txt가 이 주소를 막음
+실패	mediatoday-economy	-	robots_blocked		0		blocked	robots.txt가 이 주소를 막음
+실패	mediatoday-international	-	robots_blocked		0		blocked	robots.txt가 이 주소를 막음
+실패	mediatoday-society	-	robots_blocked		0		blocked	robots.txt가 이 주소를 막음
+실패	mediatoday-tech	-	robots_blocked		0		blocked	robots.txt가 이 주소를 막음
+실패	sisajournal-culture-2	O	http_error	404	0		allowed	HTTP 404
+실패	sisajournal-health	O	http_error	404	0		allowed	HTTP 404
+정지 의심	ablenews-culture	-	ok	200	20	36.7	allowed	
+정지 의심	ablenews-economy	-	ok	200	20	37.2	allowed	
+정지 의심	donga-culture-2	O	ok	200	50	75492.3	allowed	
+정지 의심	donga-culture-4	O	ok	200	50	34.8	allowed	
+정지 의심	donga-culture-6	O	ok	200	50	93.2	allowed	
+정지 의심	donga-women	O	ok	200	50	31.3	allowed	
+정지 의심	khan-culture-2	O	ok	200	48	14184.2	allowed	
+정지 의심	khan-entertainment	O	ok	200	4	14184.3	allowed	
+정지 의심	khan-people	O	ok	200	50	29.3	allowed	
+정지 의심	khan-sports	O	ok	200	50	42.9	allowed	
+정지 의심	khan-tech	O	ok	200	4	14203.1	allowed	
+정지 의심	newscj-entertainment	-	ok	200	20	24.3	allowed	
+정지 의심	newscj-health	-	ok	200	20	2069.4	allowed	
+정지 의심	pressian-sports	O	ok	200	25	98.1	allowed	
+정지 의심	sisain-all	-	ok	200	50	20759.8	allowed	
+정지 의심	sisain-culture	O	ok	200	20	31680.4	allowed	
+정지 의심	sisain-culture-2	O	ok	200	20	65108.0	allowed	
+정지 의심	sisain-economy	O	ok	200	20	31651.0	allowed	
+정지 의심	sisain-international	O	ok	200	20	31939.1	allowed	
+정지 의심	sisain-society	O	ok	200	20	31645.9	allowed	
+정지 의심	sisajournal-international	O	ok	200	20	135.3	allowed	
+정지 의심	tongilnews-culture	-	ok	200	20	635.1	allowed	
+정지 의심	tongilnews-international	-	ok	200	20	1051.1	allowed	
+정지 의심	tongilnews-international-2	-	ok	200	20	114.8	allowed	
+정지 의심	womennews-culture-2	O	ok	200	20	71.0	allowed	
+정지 의심	womennews-entertainment	O	ok	200	20	20679.4	allowed	
+정지 의심	womennews-sports	O	ok	200	20	5916.1	allowed	
+정지 의심	womennews-tech	O	ok	200	20	144.3	allowed	
+정상	ablenews-all	-	ok	200	50	12.7	allowed	
+정상	ablenews-people	-	ok	200	20	13.2	allowed	
+정상	ablenews-tech	-	ok	200	20	21.1	allowed	
+정상	chosun-all	-	ok	200	100	0.1	allowed	
+정상	chosun-culture	O	ok	200	100	4.1	allowed	
+정상	chosun-economy	O	ok	200	100	0.2	allowed	
+정상	chosun-entertainment	O	ok	200	100	0.1	allowed	
+정상	chosun-international	O	ok	200	100	2.0	allowed	
+정상	chosun-society	O	ok	200	100	0.1	allowed	
+정상	chosun-sports	O	ok	200	100	0.1	allowed	
+정상	donga-all	-	ok	200	50	0.2	allowed	
+정상	donga-culture	O	ok	200	50	3.3	allowed	
+정상	donga-culture-3	O	ok	200	50	4.6	allowed	
+정상	donga-culture-5	O	ok	200	50	3.3	allowed	
+정상	donga-economy	O	ok	200	50	2.9	allowed	
+정상	donga-health	O	ok	200	50	13.6	allowed	
+정상	donga-international	O	ok	200	50	2.2	allowed	
+정상	donga-medical	O	ok	200	50	2.3	allowed	
+정상	donga-people	O	ok	200	50	13.6	allowed	
+정상	donga-society	O	ok	200	50	0.2	allowed	
+정상	donga-sports	O	ok	200	50	1.5	allowed	
+정상	etnews-candidate	-	ok	200	30	0.5	allowed	
+정상	hani-all	-	ok	200	30		allowed	
+정상	hani-economy	O	ok	200	30		allowed	
+정상	hani-entertainment	O	ok	200	30		allowed	
+정상	hani-international	O	ok	200	30		allowed	
+정상	hani-science	O	ok	200	30		allowed	
+정상	hani-society	O	ok	200	30		allowed	
+정상	hani-sports	O	ok	200	30		allowed	
+정상	hankyung-candidate	-	ok	200	50	0.8	allowed	
+정상	ildaro-all	-	ok	200	50	-4.9	allowed	
+정상	khan-all	-	ok	200	50	0.4	allowed	
+정상	khan-culture	O	ok	200	50	0.6	allowed	
+정상	khan-economy	O	ok	200	50	1.0	allowed	
+정상	khan-international	O	ok	200	50	7.7	allowed	
+정상	khan-society	O	ok	200	50	4.1	allowed	
+정상	labortoday-all	-	ok	200	50	11.9	allowed	
+정상	mk-candidate	-	ok	200	50	0.0	allowed	
+정상	newscj-all	-	ok	200	50	2.1	allowed	
+정상	newscj-culture	-	ok	200	20	14.3	allowed	
+정상	newscj-economy	-	ok	200	20	4.2	allowed	
+정상	newscj-international	-	ok	200	20	0.2	allowed	
+정상	newscj-society	-	ok	200	20	2.3	allowed	
+정상	newscj-sports	-	ok	200	20	1.9	allowed	
+정상	newsis-culture	O	ok	200	67	0.9	allowed	
+정상	newsis-economy	O	ok	200	100	2.3	allowed	
+정상	newsis-economy-2	O	ok	200	100	2.3	allowed	
+정상	newsis-economy-3	O	ok	200	100	0.7	allowed	
+정상	newsis-entertainment	O	ok	200	100	0.1	allowed	
+정상	newsis-international	O	ok	200	100	0.9	allowed	
+정상	newsis-society	O	ok	200	100	1.3	allowed	
+정상	newsis-sports	O	ok	200	77	0.2	allowed	
+정상	newsis-tech	O	ok	200	100	0.3	allowed	
+정상	pressian-all	-	ok	200	25	-8.7	allowed	
+정상	pressian-culture	O	ok	200	25	-4.4	allowed	
+정상	pressian-economy	O	ok	200	25	-7.7	allowed	
+정상	pressian-international	O	ok	200	25	-5.9	allowed	
+정상	pressian-society	O	ok	200	25	9.1	allowed	
+정상	segye-all	-	ok	200	20		allowed	
+정상	segye-culture	O	ok	200	20		allowed	
+정상	segye-economy	O	ok	200	20		allowed	
+정상	segye-entertainment	O	ok	200	20		allowed	
+정상	segye-international	O	ok	200	20		allowed	
+정상	segye-society	O	ok	200	20		allowed	
+정상	segye-sports	O	ok	200	20		allowed	
+정상	seoul-culture	O	ok	200	27	7.1	allowed	
+정상	seoul-economy	O	ok	200	25	0.7	allowed	
+정상	seoul-entertainment	O	ok	200	27	1.4	allowed	
+정상	seoul-international	O	ok	200	25	1.5	allowed	
+정상	seoul-society	O	ok	200	25	5.1	allowed	
+정상	seoul-sports	O	ok	200	27	23.8	allowed	
+정상	sisajournal-all	-	ok	200	50	-8.7	allowed	
+정상	sisajournal-culture	O	ok	200	20	-6.7	allowed	
+정상	sisajournal-economy	O	ok	200	20	-6.2	allowed	
+정상	sisajournal-society	O	ok	200	20	-6.7	allowed	
+정상	tongilnews-all	-	ok	200	50	-7.8	allowed	
+정상	womennews-all	-	ok	200	50	12.7	allowed	
+정상	womennews-culture	O	ok	200	20	16.6	allowed	
+정상	womennews-economy	O	ok	200	20	12.7	allowed	
+정상	womennews-international	O	ok	200	20	22.5	allowed	
+정상	womennews-society	O	ok	200	20	12.7	allowed	
+정상	yna-candidate	-	ok	200	120	0.1	allowed	
+Job summary generated at run-time
+Annotations
+1 warning and 1 notice
+probe
+Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+probe
+"The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026. For more information, see https://github.com/actions/runner-images/issues/14748"
