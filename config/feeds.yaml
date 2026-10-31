@@ -8,7 +8,7 @@ feeds:
   title: 전체뉴스
   url: https://www.khan.co.kr/rss/rssdata/total_news.xml
   enabled: false
-  note: 전체 피드는 정치 기사가 섞여 분야별 피드로 대체
+  note: "전체 피드는 정치 기사가 섞여 분야별 피드로 대체"
 - id: khan-economy
   pub: khan
   name: 경향신문
@@ -36,7 +36,8 @@ feeds:
   section: sports
   title: 스포츠
   url: http://www.khan.co.kr/rss/rssdata/kh_sports.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: 정지 의심 (최신 기사 42.9시간 전)"
 - id: khan-culture
   pub: khan
   name: 경향신문
@@ -50,28 +51,32 @@ feeds:
   section: entertainment
   title: 연예
   url: https://www.khan.co.kr/rss/rssdata/kh_entertainment.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: 정지 의심 (최신 기사 14184.3시간 전)"
 - id: khan-tech
   pub: khan
   name: 경향신문
   section: tech|science
   title: IT
   url: http://www.khan.co.kr/rss/rssdata/it_news.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: 정지 의심 (최신 기사 14203.1시간 전)"
 - id: khan-people
   pub: khan
   name: 경향신문
   section: people
   title: 인물
   url: https://www.khan.co.kr/rss/rssdata/people_news.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: 정지 의심 (최신 기사 29.3시간 전)"
 - id: khan-culture-2
   pub: khan
   name: 경향신문
   section: culture
   title: 생활/레저
   url: https://www.khan.co.kr/rss/rssdata/skentertain_news.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: 정지 의심 (최신 기사 14184.2시간 전)"
 - id: kmib-all
   pub: kmib
   name: 국민일보
@@ -79,49 +84,55 @@ feeds:
   title: 전체기사
   url: http://rss.kmib.co.kr/data/kmibRssAll.xml
   enabled: false
-  note: 전체 피드는 정치 기사가 섞여 분야별 피드로 대체
+  note: "전체 피드는 정치 기사가 섞여 분야별 피드로 대체"
 - id: kmib-economy
   pub: kmib
   name: 국민일보
   section: economy
   title: 경제
   url: http://rss.kmib.co.kr/data/kmibEcoRss.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: robots_unavailable robots.txt를 확인하지 못함"
 - id: kmib-society
   pub: kmib
   name: 국민일보
   section: society
   title: 사회
   url: http://rss.kmib.co.kr/data/kmibSocRss.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: robots_unavailable robots.txt를 확인하지 못함"
 - id: kmib-international
   pub: kmib
   name: 국민일보
   section: international
   title: 국제
   url: http://rss.kmib.co.kr/data/kmibIntRss.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: robots_unavailable robots.txt를 확인하지 못함"
 - id: kmib-sports
   pub: kmib
   name: 국민일보
   section: sports
   title: 스포츠
   url: http://rss.kmib.co.kr/data/kmibSpoRss.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: robots_unavailable robots.txt를 확인하지 못함"
 - id: kmib-culture
   pub: kmib
   name: 국민일보
   section: culture
   title: 문화
   url: http://rss.kmib.co.kr/data/kmibCulRss.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: robots_unavailable robots.txt를 확인하지 못함"
 - id: kmib-culture-2
   pub: kmib
   name: 국민일보
   section: culture
   title: 생활
   url: http://rss.kmib.co.kr/data/kmibLifRss.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: robots_unavailable robots.txt를 확인하지 못함"
 - id: newsis-international
   pub: newsis
   name: 뉴시스
@@ -192,7 +203,7 @@ feeds:
   title: 전체기사
   url: https://rss.donga.com/total.xml
   enabled: false
-  note: 전체 피드는 정치 기사가 섞여 분야별 피드로 대체
+  note: "전체 피드는 정치 기사가 섞여 분야별 피드로 대체"
 - id: donga-society
   pub: donga
   name: 동아일보
@@ -255,7 +266,8 @@ feeds:
   section: culture
   title: 레져
   url: https://rss.donga.com/leisure.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: 정지 의심 (최신 기사 75492.3시간 전)"
 - id: donga-culture-3
   pub: donga
   name: 동아일보
@@ -269,14 +281,16 @@ feeds:
   section: culture
   title: 공연
   url: https://rss.donga.com/show.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: 정지 의심 (최신 기사 34.8시간 전)"
 - id: donga-women
   pub: donga
   name: 동아일보
   section: women
   title: 여성
   url: https://rss.donga.com/woman.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: 정지 의심 (최신 기사 31.3시간 전)"
 - id: donga-culture-5
   pub: donga
   name: 동아일보
@@ -290,7 +304,8 @@ feeds:
   section: culture
   title: 생활정보
   url: https://rss.donga.com/lifeinfo.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: 정지 의심 (최신 기사 93.2시간 전)"
 - id: ddanzi-all
   pub: ddanzi
   name: 딴지일보
@@ -298,7 +313,7 @@ feeds:
   title: 전체
   url: https://www.ddanzi.com/rss
   enabled: false
-  note: 특정 성향·소규모 매체라 기본 비활성
+  note: "특정 성향·소규모 매체라 기본 비활성"
 - id: labortoday-all
   pub: labortoday
   name: 매일노동뉴스
@@ -306,7 +321,7 @@ feeds:
   title: 전체
   url: https://www.labortoday.co.kr/rss/allArticle.xml
   enabled: false
-  note: 특정 주제 매체라 기본 비활성
+  note: "특정 주제 매체라 기본 비활성"
 - id: mediatoday-all
   pub: mediatoday
   name: 미디어오늘
@@ -314,7 +329,7 @@ feeds:
   title: 전체기사
   url: https://www.mediatoday.co.kr/rss/allArticle.xml
   enabled: false
-  note: 미디어 업계 소식 위주라 기본 비활성
+  note: "미디어 업계 소식 위주라 기본 비활성"
 - id: mediatoday-economy
   pub: mediatoday
   name: 미디어오늘
@@ -322,7 +337,7 @@ feeds:
   title: 경제
   url: https://www.mediatoday.co.kr/rss/S1N3.xml
   enabled: false
-  note: 미디어 업계 소식 위주라 기본 비활성
+  note: "미디어 업계 소식 위주라 기본 비활성"
 - id: mediatoday-society
   pub: mediatoday
   name: 미디어오늘
@@ -330,7 +345,7 @@ feeds:
   title: 사회
   url: https://www.mediatoday.co.kr/rss/S1N4.xml
   enabled: false
-  note: 미디어 업계 소식 위주라 기본 비활성
+  note: "미디어 업계 소식 위주라 기본 비활성"
 - id: mediatoday-culture
   pub: mediatoday
   name: 미디어오늘
@@ -338,7 +353,7 @@ feeds:
   title: 문화
   url: https://www.mediatoday.co.kr/rss/S1N5.xml
   enabled: false
-  note: 미디어 업계 소식 위주라 기본 비활성
+  note: "미디어 업계 소식 위주라 기본 비활성"
 - id: mediatoday-international
   pub: mediatoday
   name: 미디어오늘
@@ -346,7 +361,7 @@ feeds:
   title: 국제
   url: https://www.mediatoday.co.kr/rss/S1N6.xml
   enabled: false
-  note: 미디어 업계 소식 위주라 기본 비활성
+  note: "미디어 업계 소식 위주라 기본 비활성"
 - id: mediatoday-tech
   pub: mediatoday
   name: 미디어오늘
@@ -354,7 +369,7 @@ feeds:
   title: IT
   url: https://www.mediatoday.co.kr/rss/S1N7.xml
   enabled: false
-  note: 미디어 업계 소식 위주라 기본 비활성
+  note: "미디어 업계 소식 위주라 기본 비활성"
 - id: seoul-society
   pub: seoul
   name: 서울신문
@@ -404,7 +419,7 @@ feeds:
   title: 전체뉴스
   url: http://www.segye.com/Articles/RSSList/segye_recent.xml
   enabled: false
-  note: 전체 피드는 정치 기사가 섞여 분야별 피드로 대체
+  note: "전체 피드는 정치 기사가 섞여 분야별 피드로 대체"
 - id: segye-economy
   pub: segye
   name: 세계일보
@@ -454,42 +469,47 @@ feeds:
   title: 전체기사
   url: https://www.sisain.co.kr/rss/allArticle.xml
   enabled: false
-  note: 전체 피드는 정치 기사가 섞여 분야별 피드로 대체
+  note: "전체 피드는 정치 기사가 섞여 분야별 피드로 대체"
 - id: sisain-economy
   pub: sisain
   name: 시사인
   section: economy
   title: 경제
   url: https://www.sisain.co.kr/rss/S1N7.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: 정지 의심 (최신 기사 31651.0시간 전)"
 - id: sisain-society
   pub: sisain
   name: 시사인
   section: society
   title: 사회
   url: https://www.sisain.co.kr/rss/S1N8.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: 정지 의심 (최신 기사 31645.9시간 전)"
 - id: sisain-culture
   pub: sisain
   name: 시사인
   section: culture
   title: 문화
   url: https://www.sisain.co.kr/rss/S1N9.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: 정지 의심 (최신 기사 31680.4시간 전)"
 - id: sisain-culture-2
   pub: sisain
   name: 시사인
   section: culture
   title: 라이프
   url: https://www.sisain.co.kr/rss/S1N10.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: 정지 의심 (최신 기사 65108.0시간 전)"
 - id: sisain-international
   pub: sisain
   name: 시사인
   section: international
   title: 국제/한반도
   url: https://www.sisain.co.kr/rss/S1N11.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: 정지 의심 (최신 기사 31939.1시간 전)"
 - id: sisajournal-all
   pub: sisajournal
   name: 시사저널
@@ -497,7 +517,7 @@ feeds:
   title: 전체기사
   url: http://www.sisajournal.com/rss/allArticle.xml
   enabled: false
-  note: 전체 피드는 정치 기사가 섞여 분야별 피드로 대체
+  note: "전체 피드는 정치 기사가 섞여 분야별 피드로 대체"
 - id: sisajournal-society
   pub: sisajournal
   name: 시사저널
@@ -525,21 +545,24 @@ feeds:
   section: international
   title: 국제
   url: http://www.sisajournal.com/rss/S1N59.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: 정지 의심 (최신 기사 135.3시간 전)"
 - id: sisajournal-health
   pub: sisajournal
   name: 시사저널
   section: health
   title: Health
   url: http://www.sisajournal.com/rss/S2N106.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: http_error HTTP 404"
 - id: sisajournal-culture-2
   pub: sisajournal
   name: 시사저널
   section: culture
   title: Culture
   url: http://www.sisajournal.com/rss/S2N107.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: http_error HTTP 404"
 - id: ablenews-all
   pub: ablenews
   name: 에이블뉴스
@@ -547,7 +570,7 @@ feeds:
   title: 전체기사
   url: https://www.ablenews.co.kr/rss/allArticle.xml
   enabled: false
-  note: 특정 주제 매체라 기본 비활성
+  note: "특정 주제 매체라 기본 비활성"
 - id: ablenews-tech
   pub: ablenews
   name: 에이블뉴스
@@ -555,7 +578,7 @@ feeds:
   title: 정보세상
   url: https://www.ablenews.co.kr/rss/S1N1.xml
   enabled: false
-  note: 특정 주제 매체라 기본 비활성
+  note: "특정 주제 매체라 기본 비활성"
 - id: ablenews-economy
   pub: ablenews
   name: 에이블뉴스
@@ -563,7 +586,7 @@ feeds:
   title: 노동/경제
   url: https://www.ablenews.co.kr/rss/S1N4.xml
   enabled: false
-  note: 특정 주제 매체라 기본 비활성
+  note: "특정 주제 매체라 기본 비활성"
 - id: ablenews-culture
   pub: ablenews
   name: 에이블뉴스
@@ -571,7 +594,7 @@ feeds:
   title: 문화/체육
   url: https://www.ablenews.co.kr/rss/S1N8.xml
   enabled: false
-  note: 특정 주제 매체라 기본 비활성
+  note: "특정 주제 매체라 기본 비활성"
 - id: ablenews-people
   pub: ablenews
   name: 에이블뉴스
@@ -579,7 +602,7 @@ feeds:
   title: 인물/단체
   url: https://www.ablenews.co.kr/rss/S1N9.xml
   enabled: false
-  note: 특정 주제 매체라 기본 비활성
+  note: "특정 주제 매체라 기본 비활성"
 - id: womennews-all
   pub: womennews
   name: 여성신문
@@ -587,7 +610,7 @@ feeds:
   title: 전체기사
   url: http://www.womennews.co.kr/rss/allArticle.xml
   enabled: false
-  note: 전체 피드는 정치 기사가 섞여 분야별 피드로 대체
+  note: "전체 피드는 정치 기사가 섞여 분야별 피드로 대체"
 - id: womennews-society
   pub: womennews
   name: 여성신문
@@ -622,28 +645,32 @@ feeds:
   section: culture
   title: 생활
   url: http://www.womennews.co.kr/rss/S1N7.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: 정지 의심 (최신 기사 71.0시간 전)"
 - id: womennews-sports
   pub: womennews
   name: 여성신문
   section: sports
   title: 스포츠
   url: http://www.womennews.co.kr/rss/S1N15.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: 정지 의심 (최신 기사 5916.1시간 전)"
 - id: womennews-entertainment
   pub: womennews
   name: 여성신문
   section: entertainment
   title: 연예
   url: http://www.womennews.co.kr/rss/S1N16.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: 정지 의심 (최신 기사 20679.4시간 전)"
 - id: womennews-tech
   pub: womennews
   name: 여성신문
   section: tech|science
   title: IT/과학
   url: http://www.womennews.co.kr/rss/S1N39.xml
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: 정지 의심 (최신 기사 144.3시간 전)"
 - id: ildaro-all
   pub: ildaro
   name: 일다
@@ -651,7 +678,7 @@ feeds:
   title: 전체
   url: https://www.ildaro.com/rss/rss_news.php
   enabled: false
-  note: 소규모 매체라 기본 비활성
+  note: "소규모 매체라 기본 비활성"
 - id: chosun-all
   pub: chosun
   name: 조선일보
@@ -659,7 +686,7 @@ feeds:
   title: 전체기사
   url: https://www.chosun.com/arc/outboundfeeds/rss/?outputType=xml
   enabled: false
-  note: 전체 피드는 정치 기사가 섞여 분야별 피드로 대체
+  note: "전체 피드는 정치 기사가 섞여 분야별 피드로 대체"
 - id: chosun-economy
   pub: chosun
   name: 조선일보
@@ -709,7 +736,7 @@ feeds:
   title: 전체기사
   url: https://cdn.newscj.com/rss/gns_allArticle.xml
   enabled: false
-  note: 종교 계열 매체라 기본 비활성
+  note: "종교 계열 매체라 기본 비활성"
 - id: newscj-economy
   pub: newscj
   name: 천지일보
@@ -717,7 +744,7 @@ feeds:
   title: 경제
   url: https://cdn.newscj.com/rss/gns_S1N2.xml
   enabled: false
-  note: 종교 계열 매체라 기본 비활성
+  note: "종교 계열 매체라 기본 비활성"
 - id: newscj-society
   pub: newscj
   name: 천지일보
@@ -725,7 +752,7 @@ feeds:
   title: 사회
   url: https://cdn.newscj.com/rss/gns_S1N3.xml
   enabled: false
-  note: 종교 계열 매체라 기본 비활성
+  note: "종교 계열 매체라 기본 비활성"
 - id: newscj-culture
   pub: newscj
   name: 천지일보
@@ -733,7 +760,7 @@ feeds:
   title: 문화
   url: https://cdn.newscj.com/rss/gns_S1N6.xml
   enabled: false
-  note: 종교 계열 매체라 기본 비활성
+  note: "종교 계열 매체라 기본 비활성"
 - id: newscj-sports
   pub: newscj
   name: 천지일보
@@ -741,7 +768,7 @@ feeds:
   title: 스포츠
   url: https://cdn.newscj.com/rss/gns_S1N14.xml
   enabled: false
-  note: 종교 계열 매체라 기본 비활성
+  note: "종교 계열 매체라 기본 비활성"
 - id: newscj-entertainment
   pub: newscj
   name: 천지일보
@@ -749,7 +776,7 @@ feeds:
   title: 연예
   url: https://cdn.newscj.com/rss/gns_S1N15.xml
   enabled: false
-  note: 종교 계열 매체라 기본 비활성
+  note: "종교 계열 매체라 기본 비활성"
 - id: newscj-international
   pub: newscj
   name: 천지일보
@@ -757,7 +784,7 @@ feeds:
   title: 국제
   url: https://cdn.newscj.com/rss/gns_S1N4.xml
   enabled: false
-  note: 종교 계열 매체라 기본 비활성
+  note: "종교 계열 매체라 기본 비활성"
 - id: newscj-health
   pub: newscj
   name: 천지일보
@@ -765,7 +792,7 @@ feeds:
   title: 웰빙건강
   url: https://cdn.newscj.com/rss/gns_S1N16.xml
   enabled: false
-  note: 종교 계열 매체라 기본 비활성
+  note: "종교 계열 매체라 기본 비활성"
 - id: tongilnews-all
   pub: tongilnews
   name: 통일뉴스
@@ -773,7 +800,7 @@ feeds:
   title: 전체기사
   url: https://www.tongilnews.com/rss/allArticle.xml
   enabled: false
-  note: 특정 주제 매체라 기본 비활성
+  note: "특정 주제 매체라 기본 비활성"
 - id: tongilnews-international
   pub: tongilnews
   name: 통일뉴스
@@ -781,7 +808,7 @@ feeds:
   title: 해외동포
   url: https://www.tongilnews.com/rss/S1N7.xml
   enabled: false
-  note: 특정 주제 매체라 기본 비활성
+  note: "특정 주제 매체라 기본 비활성"
 - id: tongilnews-culture
   pub: tongilnews
   name: 통일뉴스
@@ -789,7 +816,7 @@ feeds:
   title: 통일문화
   url: https://www.tongilnews.com/rss/S1N10.xml
   enabled: false
-  note: 특정 주제 매체라 기본 비활성
+  note: "특정 주제 매체라 기본 비활성"
 - id: tongilnews-international-2
   pub: tongilnews
   name: 통일뉴스
@@ -797,7 +824,7 @@ feeds:
   title: 동북아외신
   url: https://www.tongilnews.com/rss/S1N18.xml
   enabled: false
-  note: 특정 주제 매체라 기본 비활성
+  note: "특정 주제 매체라 기본 비활성"
 - id: pressian-all
   pub: pressian
   name: 프레시안
@@ -805,7 +832,7 @@ feeds:
   title: 최신 기사
   url: https://www.pressian.com/api/v3/site/rss/news
   enabled: false
-  note: 전체 피드는 정치 기사가 섞여 분야별 피드로 대체
+  note: "전체 피드는 정치 기사가 섞여 분야별 피드로 대체"
 - id: pressian-international
   pub: pressian
   name: 프레시안
@@ -840,7 +867,8 @@ feeds:
   section: sports
   title: 스포츠
   url: https://www.pressian.com/api/v3/site/rss/section/70
-  enabled: true
+  enabled: false
+  note: "2026-10-31 probe: 정지 의심 (최신 기사 98.1시간 전)"
 - id: hani-all
   pub: hani
   name: 한겨레신문
@@ -848,7 +876,7 @@ feeds:
   title: 전체기사
   url: https://www.hani.co.kr/rss/
   enabled: false
-  note: 전체 피드는 정치 기사가 섞여 분야별 피드로 대체
+  note: "전체 피드는 정치 기사가 섞여 분야별 피드로 대체"
 - id: hani-economy
   pub: hani
   name: 한겨레신문
@@ -897,29 +925,29 @@ feeds:
   section: _all_
   title: 전체
   url: https://www.yna.co.kr/rss/news.xml
-  enabled: false
-  note: URL 미검증 후보. probe로 확인 후 활성화 (전체 피드라 정치 기사는 헤드라인 필터로 거른다)
+  enabled: true
+  note: "2026-10-31 probe 정상. 전체 피드라 정치 기사는 헤드라인 필터로 거른다"
 - id: mk-candidate
   pub: mk
   name: 매일경제
   section: _all_
   title: 전체
   url: https://www.mk.co.kr/rss/30000001/
-  enabled: false
-  note: URL 미검증 후보. probe로 확인 후 활성화 (전체 피드라 정치 기사는 헤드라인 필터로 거른다)
+  enabled: true
+  note: "2026-10-31 probe 정상. 전체 피드라 정치 기사는 헤드라인 필터로 거른다"
 - id: hankyung-candidate
   pub: hankyung
   name: 한국경제
   section: _all_
   title: 전체
   url: https://www.hankyung.com/feed/all-news
-  enabled: false
-  note: URL 미검증 후보. probe로 확인 후 활성화 (전체 피드라 정치 기사는 헤드라인 필터로 거른다)
+  enabled: true
+  note: "2026-10-31 probe 정상. 전체 피드라 정치 기사는 헤드라인 필터로 거른다"
 - id: etnews-candidate
   pub: etnews
   name: 전자신문
   section: _all_
   title: 전체
   url: https://rss.etnews.com/Section901.xml
-  enabled: false
-  note: URL 미검증 후보. probe로 확인 후 활성화 (전체 피드라 정치 기사는 헤드라인 필터로 거른다)
+  enabled: true
+  note: "2026-10-31 probe 정상. 전체 피드라 정치 기사는 헤드라인 필터로 거른다"
