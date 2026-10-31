@@ -65,7 +65,9 @@ def run_once(cfg: dict, feeds: list[Feed], fetcher, state: dict, now: float, rul
 
         for it in res.items:
             ts = it.ts
-            if ts is None:
+            h = title_hash(normalize_title(it.title))
+            undated = ts is None
+            if undated:
                 counts["nodate"] += 1
                 ts = now
             elif ts > now + 7200:
@@ -74,7 +76,14 @@ def run_once(cfg: dict, feeds: list[Feed], fetcher, state: dict, now: float, rul
                 counts["old"] += 1
                 continue
             day = kst_day(ts)
-            key = f"{day}:{title_hash(normalize_title(it.title))}"
+            key = f"{day}:{h}"
+            if undated:
+                # 날짜 없는 피드는 같은 기사가 며칠째 목록에 남는다. 처음 본 해시를 7일간 기억해 다시 세지 않는다.
+                seen = state.setdefault("undated_seen", {})
+                if h in seen and key not in stories:
+                    counts["dup"] += 1
+                    continue
+                seen.setdefault(h, now)
             story = stories.get(key)
             if story is not None:
                 if feed.pub not in story["pubs"]:
@@ -86,6 +95,10 @@ def run_once(cfg: dict, feeds: list[Feed], fetcher, state: dict, now: float, rul
             stories[key] = {"day": day, "pubs": [feed.pub], "kw": ex_.keywords, "p": 1 if ex_.political else 0}
             fs["items_new"] += 1
             counts["politics" if ex_.political else "new"] += 1
+
+    seen = state.get("undated_seen")
+    if seen:
+        state["undated_seen"] = {h: t for h, t in seen.items() if now - t <= 7 * 86400}
 
     expected = len(enabled) - blocked
     st["runs"] += 1

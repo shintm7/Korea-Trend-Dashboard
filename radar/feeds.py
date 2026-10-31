@@ -82,6 +82,12 @@ def parse_feed_bytes(feed_id: str, content: bytes, now: float, stale_hours: floa
         t = e.get("published_parsed") or e.get("updated_parsed")
         ts = float(calendar.timegm(t)) if t else None
         items.append(Item(title=title, link=e.get("link", ""), ts=ts))
+    # 시간대 표시 없이 한국 시각을 적는 피드는 UTC로 읽혀 9시간 미래로 보인다. 그런 피드는 9시간을 되돌린다.
+    dated = [i for i in items if i.ts]
+    future = [i for i in dated if i.ts > now + 1800]
+    if len(dated) >= 3 and len(future) >= 0.25 * len(dated) and max(i.ts for i in dated) - now <= 9.5 * 3600:
+        for i in dated:
+            i.ts -= 9 * 3600
     res = FetchResult(feed_id=feed_id, status="ok", items=items, bozo=bool(parsed.get("bozo")))
     stamps = [i.ts for i in items if i.ts]
     res.newest_ts = max(stamps) if stamps else None
