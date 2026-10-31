@@ -1,157 +1,74 @@
 #!/usr/bin/env python3
-"""네이버 데이터랩 검색어트렌드 API로 소비·산업 트렌드를 수집해 docs/data.json 으로 저장.
+"""뉴스 수집 한 회차를 실행한다.
 
-사용법
-  NAVER_CLIENT_ID=... NAVER_CLIENT_SECRET=... python scripts/collect.py
-  python scripts/collect.py --demo      # API 키 없이 가짜 데이터로 화면 확인용
-
-주의: 네이버 데이터랩의 ratio는 '한 번의 요청(=한 섹션) 안에서' 가장 높은 값을 100으로
-정규화한 상대값입니다. 따라서 섹션이 다른 그룹끼리는 값을 직접 비교할 수 없고,
-증감률(최근 7일 vs 직전 7일 등)은 같은 그룹 안에서만 의미가 있습니다.
+  python scripts/collect.py                         # 실제 수집 (GitHub Actions에서 2시간마다)
+  python scripts/collect.py --fixtures tests/fixtures/set1 --now 2026-11-02T10:00:00+09:00   # 오프라인 시뮬레이션
 """
 import argparse
 import datetime as dt
 import json
-import math
-import os
-import random
 import sys
-import urllib.error
-import urllib.request
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-CONFIG = ROOT / "config.json"
-OUT = ROOT / "docs" / "data.json"
-API_URL_HUB = "https://naverapihub.apigw.ntruss.com/search-trend/v1/search"
-API_URL_LEGACY = "https://openapi.naver.com/v1/datalab/search"
-PROVIDER = os.environ.get("NAVER_PROVIDER", "apihub")  # apihub | developers
-KST = dt.timezone(dt.timedelta(hours=9))
+sys.path.insert(0, str(ROOT))
+
+from radar.extract import Rules  # noqa: E402
+from radar.feeds import FixtureFetcher, HttpFetcher, load_feeds  # noqa: E402
+from radar.pipeline import finalize_days, run_once  # noqa: E402
+from radar.quality import baseline_status, read_days  # noqa: E402
+from radar.state import load_state, save_state  # noqa: E402
+from radar.util import load_settings, read_wordlist  # noqa: E402
 
 
-def fetch_section(section, start, end, cid, secret):
-    body = {
-        "startDate": start.isoformat(),
-        "endDate": end.isoformat(),
-        "timeUnit": "date",
-        "keywordGroups": [
-            {"groupName": g["name"], "keywords": g["keywords"]} for g in section["groups"]
-        ],
-    }
-    if PROVIDER == "developers":  # 구 개발자센터 키 (신규 발급 중단)
-        url = API_URL_LEGACY
-        headers = {"X-Naver-Client-Id": cid, "X-Naver-Client-Secret": secret}
-    else:  # NAVER API HUB (네이버 클라우드 플랫폼) 키
-        url = API_URL_HUB
-        headers = {"X-NCP-APIGW-API-KEY-ID": cid, "X-NCP-APIGW-API-KEY": secret}
-    headers["Content-Type"] = "application/json"
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
-        headers=headers,
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=30) as res:
-            payload = json.load(res)
-    except urllib.error.HTTPError as e:
-        detail = e.read().decode("utf-8", "replace")
-        sys.exit(f"[오류] 네이버 API 호출 실패 (섹션 '{section['title']}'): HTTP {e.code}\n{detail}")
-    except urllib.error.URLError as e:
-        sys.exit(f"[오류] 네이버 API에 연결하지 못했습니다: {e.reason}")
-    results = payload.get("results")
-    if not results:
-        sys.exit("[오류] 응답에 results가 없습니다. 응답 앞부분: " + json.dumps(payload, ensure_ascii=False)[:500])
-    return {r["title"]: r["data"] for r in results}
-
-
-def demo_series(start, end, seed):
-    rnd = random.Random(seed)
-    days = (end - start).days + 1
-    base = rnd.uniform(20, 60)
-    slope = rnd.uniform(-0.3, 0.6)
-    amp = rnd.uniform(3, 10)
-    out = []
-    for i in range(days):
-        d = start + dt.timedelta(days=i)
-        v = base + slope * i + amp * math.sin(i / 3.0) + rnd.uniform(-4, 4)
-        out.append({"period": d.isoformat(), "ratio": round(max(v, 0.5), 5)})
-    peak = max(p["ratio"] for p in out) or 1
-    for p in out:
-        p["ratio"] = round(p["ratio"] / peak * 100, 5)
-    return out
-
-
-def avg(xs):
-    return sum(xs) / len(xs) if xs else 0.0
-
-
-def pct(new, old):
-    if old <= 0:
-        return None
-    return round((new - old) / old * 100, 1)
-
-
-def analyze(series):
-    vals = [p["ratio"] for p in series]
-    last7 = avg(vals[-7:])
-    prev7 = avg(vals[-14:-7])
-    prev28 = avg(vals[-35:-7])
-    return {
-        "last7": round(last7, 2),
-        "wow_pct": pct(last7, prev7),        # 직전 7일 대비
-        "momentum_pct": pct(last7, prev28),  # 직전 4주 평균 대비 (추세 가속 여부)
-    }
-
-
-def main():
+def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--demo", action="store_true")
+    ap.add_argument("--config", default=str(ROOT / "config" / "settings.yaml"))
+    ap.add_argument("--feeds", default=str(ROOT / "config" / "feeds.yaml"))
+    ap.add_argument("--data-dir", default=str(ROOT / "data"))
+    ap.add_argument("--state-dir", default=str(ROOT / "state"))
+    ap.add_argument("--fixtures", help="네트워크 대신 이 폴더의 XML을 사용 (테스트용)")
+    ap.add_argument("--now", help="현재 시각을 고정 (ISO 8601, 시뮬레이션용)")
+    ap.add_argument("--finalize-all", action="store_true", help="열린 날까지 모두 확정해서 쓴다")
+    ap.add_argument("--include-disabled", action="store_true", help="enabled:false 피드도 포함 (테스트용)")
     args = ap.parse_args()
 
-    cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
-    today = dt.datetime.now(KST).date()
-    end = today - dt.timedelta(days=1)  # 당일 데이터는 미확정이라 어제까지
-    start = end - dt.timedelta(days=cfg.get("days", 90) - 1)
+    cfg = load_settings(args.config)
+    data_dir, state_path = Path(args.data_dir), Path(args.state_dir) / "state.json.gz"
+    now = dt.datetime.fromisoformat(args.now).timestamp() if args.now else time.time()
 
-    cid = os.environ.get("NAVER_CLIENT_ID")
-    secret = os.environ.get("NAVER_CLIENT_SECRET")
-    if not args.demo and not (cid and secret):
-        sys.exit("NAVER_CLIENT_ID / NAVER_CLIENT_SECRET 환경변수가 필요합니다. (--demo로 샘플 실행 가능)")
+    rules = Rules.from_lists(read_wordlist(ROOT / "config" / "stopwords.txt"),
+                             read_wordlist(ROOT / "config" / "politics_terms.txt"),
+                             cfg["ngram_max"], cfg["max_keywords_per_headline"])
+    feeds = load_feeds(args.feeds)
+    if args.include_disabled:
+        for f in feeds:
+            f.enabled = True
 
-    sections = []
-    for si, sec in enumerate(cfg["sections"]):
-        if args.demo:
-            raw = {g["name"]: demo_series(start, end, seed=si * 100 + gi)
-                   for gi, g in enumerate(sec["groups"])}
-        else:
-            raw = fetch_section(sec, start, end, cid, secret)
-        groups = []
-        for g in sec["groups"]:
-            series = raw.get(g["name"], [])
-            groups.append({
-                "name": g["name"],
-                "keywords": g["keywords"],
-                "series": series,
-                **analyze(series),
-            })
-        sections.append({"id": sec["id"], "title": sec["title"], "groups": groups})
+    state, missing = load_state(state_path)
+    had_history = bool(read_days(data_dir / "days.csv"))
+    reset = missing and had_history        # 첫 실행은 장애가 아니다. 기록이 있는데 상태만 없으면 상태 유실.
+    if reset:
+        print("! 상태 파일이 없어 새로 시작합니다. 오늘은 '불완전한 날'로 표시됩니다.")
 
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(
-        json.dumps(
-            {
-                "updated": dt.datetime.now(KST).isoformat(timespec="minutes"),
-                "range": [start.isoformat(), end.isoformat()],
-                "demo": bool(args.demo),
-                "source": "네이버 데이터랩 검색어트렌드",
-                "sections": sections,
-            },
-            ensure_ascii=False,
-        ),
-        encoding="utf-8",
-    )
-    print(f"saved {OUT} ({sum(len(s['groups']) for s in sections)} groups)")
+    fetcher = FixtureFetcher(args.fixtures, cfg) if args.fixtures else HttpFetcher(cfg, state["http"])
+    summary = run_once(cfg, feeds, fetcher, state, now, rules, reset=reset)
+    written = finalize_days(cfg, state, now, data_dir, force_all=args.finalize_all)
+    save_state(state_path, state)
+
+    base = baseline_status(data_dir / "days.csv", cfg)
+    print(f"[baseline] 완전한 날 {base['complete_days']}/{base['required']} → "
+          f"{'급증 판정 가능' if base['ready'] else '급증 판정 보류 (기준선 쌓는 중)'}")
+    if written:
+        print("[written] " + ", ".join(sorted(set(written))))
+
+    out = Path(args.state_dir) / "last_run.json"
+    out.write_text(json.dumps({**summary, "written": written, "baseline": base}, ensure_ascii=False, indent=1),
+                   encoding="utf-8")
+    # 정상 수집한 피드가 하나도 없으면 실패로 끝내 Actions에서 바로 보이게 한다
+    return 1 if summary["feeds_expected"] and summary["feeds_ok"] == 0 else 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
