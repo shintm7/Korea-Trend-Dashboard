@@ -1,0 +1,4 @@
+feedparser>=6.0
+kiwipiepy>=0.18
+PyYAML>=6.0
+requests>=2.31
