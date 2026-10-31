@@ -13,7 +13,9 @@ test_tags_do_not_change_hash (test_extract.ExtractTests.test_tags_do_not_change_
 test_dc_date_only (test_feeds.ParseTests.test_dc_date_only) ... ok
 test_euc_kr (test_feeds.ParseTests.test_euc_kr) ... ok
 test_html_block_page_is_parse_error (test_feeds.ParseTests.test_html_block_page_is_parse_error) ... ok
+test_naive_kst_stamps_read_as_utc_are_shifted_back (test_feeds.ParseTests.test_naive_kst_stamps_read_as_utc_are_shifted_back) ... ok
 test_normal (test_feeds.ParseTests.test_normal) ... ok
+test_single_future_item_is_not_shifted (test_feeds.ParseTests.test_single_future_item_is_not_shifted) ... ok
 test_stale_feed_flagged (test_feeds.ParseTests.test_stale_feed_flagged) ... ok
 test_truncated_xml_still_reads_items (test_feeds.ParseTests.test_truncated_xml_still_reads_items) ... ok
 test_block_page_is_parse_error (test_http.HttpTests.test_block_page_is_parse_error) ... ok
@@ -29,9 +31,10 @@ test_outage_marks_day_incomplete (test_pipeline.PipelineTests.test_outage_marks_
 test_politics_dropped_and_counted (test_pipeline.PipelineTests.test_politics_dropped_and_counted) ... ok
 test_robots_blocked_feed_not_counted_as_outage (test_pipeline.PipelineTests.test_robots_blocked_feed_not_counted_as_outage) ... ok
 test_state_reset_flag (test_pipeline.PipelineTests.test_state_reset_flag) ... ok
+test_undated_items_are_not_recounted_on_later_days (test_pipeline.PipelineTests.test_undated_items_are_not_recounted_on_later_days) ... ok
 test_volume_drop_flagged (test_pipeline.PipelineTests.test_volume_drop_flagged) ... ok
 
 ----------------------------------------------------------------------
-Ran 32 tests in 3.137s
+Ran 35 tests in 3.016s
 
 OK
