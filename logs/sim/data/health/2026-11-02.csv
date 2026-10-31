@@ -1,0 +1,7 @@
+feed_id,runs,ok_runs,stale_runs,items_new,last_status,last_error
+aaa-economy,12,11,0,13,ok,
+aaa-ent,12,12,0,20,ok,
+bbb-economy,12,11,0,10,ok,
+bbb-ent,12,12,0,8,ok,
+ccc-economy,12,11,0,7,ok,
+ccc-ent,12,11,0,5,ok,
