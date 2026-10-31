@@ -1,0 +1,28 @@
+name: Probe RSS feeds
+
+# 모든 피드(비활성 포함)가 GitHub 서버에서 실제로 열리는지 점검한다. 수동 실행.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Probe
+        run: python scripts/probe_feeds.py
+      - name: Summary
+        run: cat reports/probe-latest.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: probe-report
+          path: reports/
