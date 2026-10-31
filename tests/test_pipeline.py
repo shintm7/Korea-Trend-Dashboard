@@ -131,6 +131,20 @@ class PipelineTests(unittest.TestCase):
         written = finalize_days(CFG, self.state, at("2026-11-04", "10:00"), self.data, log=lambda *_: None)
         self.assertTrue(written)
 
+    def test_undated_items_are_not_recounted_on_later_days(self):
+        undated = ('<?xml version="1.0"?><rss version="2.0"><channel><title>t</title>'
+                   '<item><title>편의점 디저트 신상 출시</title><link>https://e.com/1</link></item>'
+                   '</channel></rss>').encode()
+        self.fx.mkdir(parents=True, exist_ok=True)
+        (self.fx / "a-eco.xml").write_bytes(undated)
+        s1 = self.run_at("2026-11-02", "10:00")
+        self.assertEqual(s1["new_stories"], 1)
+        self.assertEqual(s1["nodate"], 1)
+        s2 = self.run_at("2026-11-03", "10:00")           # 이튿날에도 같은 기사가 목록에 남아 있다
+        self.assertEqual(s2["new_stories"], 0)
+        s3 = self.run_at("2026-11-05", "10:00")           # 이틀 뒤(상태에서 날이 확정된 뒤)에도 다시 세지 않는다
+        self.assertEqual(s3["new_stories"], 0)
+
     def test_volume_drop_flagged(self):
         days = [{"date": f"2026-10-{20+i}", "stories": 100, "incomplete": 0} for i in range(5)]
         meta = {"date": "2026-10-30", "stories": 20, "runs": 12, "coverage": 0.95, "reset": False}

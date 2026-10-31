@@ -49,5 +49,18 @@ class ParseTests(unittest.TestCase):
         self.assertTrue(r.stale)
 
 
+    def test_naive_kst_stamps_read_as_utc_are_shifted_back(self):
+        # 한국 시각을 시간대 없이 적은 피드: 실제로는 방금~2시간 전인 기사가 UTC로 읽혀 7~9시간 미래로 보인다
+        items = [(f"기사 {i}", NOW + 9 * 3600 - i * 1800) for i in range(6)]
+        r = parse_feed_bytes("f", rss(items), NOW, 24)
+        self.assertLessEqual(max(i.ts for i in r.items), NOW + 5)
+        self.assertFalse(r.stale)
+
+    def test_single_future_item_is_not_shifted(self):
+        items = [("예약 기사", NOW + 3 * 3600)] + [(f"기사 {i}", NOW - i * 3600) for i in range(1, 8)]
+        r = parse_feed_bytes("f", rss(items), NOW, 24)
+        self.assertGreater(max(i.ts for i in r.items), NOW + 3600)
+
+
 if __name__ == "__main__":
     unittest.main()
