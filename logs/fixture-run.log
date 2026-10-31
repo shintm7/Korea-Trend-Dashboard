@@ -1,0 +1,230 @@
+--- 2026-11-02 00:30 KST ---
+[run 2026-11-02] feeds ok 2/6 | status {'empty': 4, 'ok': 2} | new 2 politics_dropped 0 dup 1 old 0
+   ! aaa-economy: empty 항목 없음
+   ! bbb-economy: empty 항목 없음
+   ! ccc-economy: empty 항목 없음
+   ! ccc-ent: empty 항목 없음
+[baseline] 완전한 날 0/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-02 02:30 KST ---
+[run 2026-11-02] feeds ok 6/6 | status {'ok': 6} | new 5 politics_dropped 0 dup 7 old 0
+[baseline] 완전한 날 0/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-02 04:30 KST ---
+[run 2026-11-02] feeds ok 6/6 | status {'ok': 6} | new 1 politics_dropped 2 dup 12 old 0
+[baseline] 완전한 날 0/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-02 06:30 KST ---
+[run 2026-11-02] feeds ok 6/6 | status {'ok': 6} | new 4 politics_dropped 0 dup 14 old 0
+[baseline] 완전한 날 0/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-02 08:30 KST ---
+[run 2026-11-02] feeds ok 6/6 | status {'ok': 6} | new 7 politics_dropped 1 dup 15 old 0
+[baseline] 완전한 날 0/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-02 10:30 KST ---
+[run 2026-11-02] feeds ok 6/6 | status {'ok': 6} | new 4 politics_dropped 0 dup 24 old 0
+[baseline] 완전한 날 0/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-02 12:30 KST ---
+[run 2026-11-02] feeds ok 6/6 | status {'ok': 6} | new 3 politics_dropped 0 dup 29 old 0
+[baseline] 완전한 날 0/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-02 14:30 KST ---
+[run 2026-11-02] feeds ok 6/6 | status {'ok': 6} | new 8 politics_dropped 0 dup 22 old 0
+[baseline] 완전한 날 0/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-02 16:30 KST ---
+[run 2026-11-02] feeds ok 6/6 | status {'ok': 6} | new 9 politics_dropped 0 dup 34 old 0
+[baseline] 완전한 날 0/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-02 18:30 KST ---
+[run 2026-11-02] feeds ok 6/6 | status {'ok': 6} | new 8 politics_dropped 0 dup 40 old 0
+[baseline] 완전한 날 0/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-02 20:30 KST ---
+[run 2026-11-02] feeds ok 6/6 | status {'ok': 6} | new 5 politics_dropped 0 dup 39 old 0
+[baseline] 완전한 날 0/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-02 22:30 KST ---
+[run 2026-11-02] feeds ok 6/6 | status {'ok': 6} | new 4 politics_dropped 0 dup 25 old 0
+[baseline] 완전한 날 0/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-03 00:30 KST ---
+[run 2026-11-03] feeds ok 6/6 | status {'ok': 6} | new 11 politics_dropped 0 dup 25 old 0
+[baseline] 완전한 날 0/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-03 02:30 KST ---
+[run 2026-11-03] feeds ok 6/6 | status {'ok': 6} | new 4 politics_dropped 0 dup 31 old 0
+[baseline] 완전한 날 0/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-03 04:30 KST ---
+[run 2026-11-03] feeds ok 6/6 | status {'ok': 6} | new 7 politics_dropped 1 dup 36 old 0
+[baseline] 완전한 날 0/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-03 06:30 KST ---
+[run 2026-11-03] feeds ok 6/6 | status {'ok': 6} | new 7 politics_dropped 0 dup 28 old 0
+[baseline] 완전한 날 0/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-03 08:30 KST ---
+[run 2026-11-03] feeds ok 6/6 | status {'ok': 6} | new 7 politics_dropped 0 dup 35 old 0
+[baseline] 완전한 날 0/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-03 10:30 KST ---
+[run 2026-11-03] feeds ok 6/6 | status {'ok': 6} | new 9 politics_dropped 0 dup 38 old 0
+[baseline] 완전한 날 0/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-03 12:30 KST ---
+[run 2026-11-03] feeds ok 6/6 | status {'ok': 6} | new 9 politics_dropped 0 dup 41 old 0
+[baseline] 완전한 날 0/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-03 14:30 KST ---
+[run 2026-11-03] feeds ok 6/6 | status {'ok': 6} | new 3 politics_dropped 0 dup 40 old 0
+[baseline] 완전한 날 0/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-03 16:30 KST ---
+[run 2026-11-03] feeds ok 6/6 | status {'ok': 6} | new 7 politics_dropped 0 dup 31 old 0
+[baseline] 완전한 날 0/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-03 18:30 KST ---
+[run 2026-11-03] feeds ok 6/6 | status {'ok': 6} | new 9 politics_dropped 1 dup 27 old 0
+[baseline] 완전한 날 0/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-03 20:30 KST ---
+[run 2026-11-03] feeds ok 6/6 | status {'ok': 6} | new 5 politics_dropped 1 dup 34 old 0
+[baseline] 완전한 날 0/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-03 22:30 KST ---
+[run 2026-11-03] feeds ok 6/6 | status {'ok': 6} | new 4 politics_dropped 0 dup 29 old 0
+[baseline] 완전한 날 0/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-04 00:30 KST ---
+[run 2026-11-04] feeds ok 6/6 | status {'ok': 6} | new 4 politics_dropped 0 dup 24 old 0
+[finalize 2026-11-02] stories 71 keywords 139 coverage 0.944 runs 12 incomplete=0
+[baseline] 완전한 날 1/21 → 급증 판정 보류 (기준선 쌓는 중)
+[written] daily/2026-11-02.csv, days.csv, health/2026-11-02.csv
+--- 2026-11-04 02:30 KST ---
+[run 2026-11-04] feeds ok 6/6 | status {'ok': 6} | new 14 politics_dropped 2 dup 30 old 0
+[baseline] 완전한 날 1/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-04 04:30 KST ---
+[run 2026-11-04] feeds ok 6/6 | status {'ok': 6} | new 2 politics_dropped 0 dup 40 old 0
+[baseline] 완전한 날 1/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-04 06:30 KST ---
+[run 2026-11-04] feeds ok 6/6 | status {'ok': 6} | new 10 politics_dropped 0 dup 47 old 0
+[baseline] 완전한 날 1/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-04 08:30 KST ---
+[run 2026-11-04] feeds ok 6/6 | status {'ok': 6} | new 8 politics_dropped 0 dup 39 old 0
+[baseline] 완전한 날 1/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-04 10:30 KST ---
+[run 2026-11-04] feeds ok 2/6 | status {'ok': 2, 'timeout': 2, 'http_error': 2} | new 4 politics_dropped 0 dup 17 old 0
+   ! bbb-economy: timeout fixture timeout
+   ! bbb-ent: timeout fixture timeout
+   ! ccc-economy: http_error fixture http_error
+   ! ccc-ent: http_error fixture http_error
+[baseline] 완전한 날 1/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-04 12:30 KST ---
+[run 2026-11-04] feeds ok 2/6 | status {'ok': 2, 'timeout': 2, 'http_error': 2} | new 1 politics_dropped 0 dup 12 old 0
+   ! bbb-economy: timeout fixture timeout
+   ! bbb-ent: timeout fixture timeout
+   ! ccc-economy: http_error fixture http_error
+   ! ccc-ent: http_error fixture http_error
+[baseline] 완전한 날 1/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-04 14:30 KST ---
+[run 2026-11-04] feeds ok 2/6 | status {'ok': 2, 'timeout': 2, 'http_error': 2} | new 3 politics_dropped 0 dup 5 old 0
+   ! bbb-economy: timeout fixture timeout
+   ! bbb-ent: timeout fixture timeout
+   ! ccc-economy: http_error fixture http_error
+   ! ccc-ent: http_error fixture http_error
+[baseline] 완전한 날 1/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-04 16:30 KST ---
+[run 2026-11-04] feeds ok 2/6 | status {'ok': 2, 'timeout': 2, 'http_error': 2} | new 3 politics_dropped 0 dup 5 old 0
+   ! bbb-economy: timeout fixture timeout
+   ! bbb-ent: timeout fixture timeout
+   ! ccc-economy: http_error fixture http_error
+   ! ccc-ent: http_error fixture http_error
+[baseline] 완전한 날 1/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-04 18:30 KST ---
+[run 2026-11-04] feeds ok 2/6 | status {'ok': 2, 'timeout': 2, 'http_error': 2} | new 2 politics_dropped 0 dup 7 old 0
+   ! bbb-economy: timeout fixture timeout
+   ! bbb-ent: timeout fixture timeout
+   ! ccc-economy: http_error fixture http_error
+   ! ccc-ent: http_error fixture http_error
+[baseline] 완전한 날 1/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-04 20:30 KST ---
+[run 2026-11-04] feeds ok 2/6 | status {'ok': 2, 'timeout': 2, 'http_error': 2} | new 4 politics_dropped 0 dup 6 old 0
+   ! bbb-economy: timeout fixture timeout
+   ! bbb-ent: timeout fixture timeout
+   ! ccc-economy: http_error fixture http_error
+   ! ccc-ent: http_error fixture http_error
+[baseline] 완전한 날 1/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-04 22:30 KST ---
+[run 2026-11-04] feeds ok 2/6 | status {'ok': 2, 'timeout': 2, 'http_error': 2} | new 2 politics_dropped 0 dup 6 old 0
+   ! bbb-economy: timeout fixture timeout
+   ! bbb-ent: timeout fixture timeout
+   ! ccc-economy: http_error fixture http_error
+   ! ccc-ent: http_error fixture http_error
+[baseline] 완전한 날 1/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-05 00:30 KST ---
+[run 2026-11-05] feeds ok 6/6 | status {'ok': 6} | new 12 politics_dropped 1 dup 17 old 0
+[finalize 2026-11-03] stories 73 keywords 154 coverage 1.0 runs 12 incomplete=0
+[baseline] 완전한 날 2/21 → 급증 판정 보류 (기준선 쌓는 중)
+[written] daily/2026-11-03.csv, days.csv, health/2026-11-03.csv
+--- 2026-11-05 02:30 KST ---
+[run 2026-11-05] feeds ok 6/6 | status {'ok': 6} | new 8 politics_dropped 0 dup 23 old 0
+[baseline] 완전한 날 2/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-05 04:30 KST ---
+[run 2026-11-05] feeds ok 6/6 | status {'ok': 6} | new 10 politics_dropped 1 dup 32 old 0
+[baseline] 완전한 날 2/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-05 06:30 KST ---
+[run 2026-11-05] feeds ok 6/6 | status {'ok': 6} | new 11 politics_dropped 0 dup 42 old 0
+[baseline] 완전한 날 2/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-05 08:30 KST ---
+[run 2026-11-05] feeds ok 6/6 | status {'ok': 6} | new 3 politics_dropped 1 dup 44 old 0
+[baseline] 완전한 날 2/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-05 10:30 KST ---
+[run 2026-11-05] feeds ok 6/6 | status {'ok': 6} | new 10 politics_dropped 0 dup 39 old 0
+[baseline] 완전한 날 2/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-05 12:30 KST ---
+[run 2026-11-05] feeds ok 6/6 | status {'ok': 6} | new 10 politics_dropped 0 dup 40 old 0
+[baseline] 완전한 날 2/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-05 14:30 KST ---
+[run 2026-11-05] feeds ok 6/6 | status {'ok': 6} | new 7 politics_dropped 0 dup 48 old 0
+[baseline] 완전한 날 2/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-05 16:30 KST ---
+[run 2026-11-05] feeds ok 6/6 | status {'ok': 6} | new 10 politics_dropped 0 dup 49 old 0
+[baseline] 완전한 날 2/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-05 18:30 KST ---
+[run 2026-11-05] feeds ok 6/6 | status {'ok': 6} | new 7 politics_dropped 0 dup 47 old 0
+[baseline] 완전한 날 2/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-05 20:30 KST ---
+[run 2026-11-05] feeds ok 6/6 | status {'ok': 6} | new 9 politics_dropped 0 dup 50 old 0
+[baseline] 완전한 날 2/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-05 22:30 KST ---
+[run 2026-11-05] feeds ok 6/6 | status {'ok': 6} | new 3 politics_dropped 0 dup 36 old 0
+[baseline] 완전한 날 2/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-06 00:30 KST ---
+[run 2026-11-06] feeds ok 6/6 | status {'ok': 6} | new 4 politics_dropped 0 dup 26 old 0
+[finalize 2026-11-04] stories 67 keywords 145 coverage 0.611 runs 12 incomplete=1 coverage_low
+[baseline] 완전한 날 2/21 → 급증 판정 보류 (기준선 쌓는 중)
+[written] daily/2026-11-04.csv, days.csv, health/2026-11-04.csv
+--- 2026-11-06 02:30 KST ---
+[run 2026-11-06] feeds ok 6/6 | status {'ok': 6} | new 10 politics_dropped 1 dup 18 old 0
+[baseline] 완전한 날 2/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-06 04:30 KST ---
+[run 2026-11-06] feeds ok 6/6 | status {'ok': 6} | new 9 politics_dropped 0 dup 36 old 0
+[baseline] 완전한 날 2/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-06 06:30 KST ---
+[run 2026-11-06] feeds ok 6/6 | status {'ok': 6} | new 7 politics_dropped 1 dup 46 old 0
+[baseline] 완전한 날 2/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-06 08:30 KST ---
+[run 2026-11-06] feeds ok 6/6 | status {'ok': 6} | new 6 politics_dropped 0 dup 43 old 0
+[baseline] 완전한 날 2/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-06 10:30 KST ---
+[run 2026-11-06] feeds ok 6/6 | status {'ok': 6} | new 8 politics_dropped 0 dup 38 old 0
+[baseline] 완전한 날 2/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-06 12:30 KST ---
+[run 2026-11-06] feeds ok 6/6 | status {'ok': 6} | new 6 politics_dropped 0 dup 34 old 0
+[baseline] 완전한 날 2/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-06 14:30 KST ---
+[run 2026-11-06] feeds ok 6/6 | status {'ok': 6} | new 15 politics_dropped 0 dup 43 old 0
+[baseline] 완전한 날 2/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-06 16:30 KST ---
+[run 2026-11-06] feeds ok 6/6 | status {'ok': 6} | new 6 politics_dropped 0 dup 49 old 0
+[baseline] 완전한 날 2/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-06 18:30 KST ---
+[run 2026-11-06] feeds ok 6/6 | status {'ok': 6} | new 4 politics_dropped 0 dup 54 old 0
+[baseline] 완전한 날 2/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-06 20:30 KST ---
+[run 2026-11-06] feeds ok 6/6 | status {'ok': 6} | new 9 politics_dropped 0 dup 39 old 0
+[baseline] 완전한 날 2/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-06 22:30 KST ---
+[run 2026-11-06] feeds ok 6/6 | status {'ok': 6} | new 9 politics_dropped 0 dup 43 old 0
+[baseline] 완전한 날 2/21 → 급증 판정 보류 (기준선 쌓는 중)
+--- 2026-11-07 01:30 KST ---
+[run 2026-11-07] feeds ok 6/6 | status {'ok': 6} | new 5 politics_dropped 0 dup 41 old 0
+[finalize 2026-11-05] stories 91 keywords 158 coverage 1.0 runs 12 incomplete=0
+[baseline] 완전한 날 3/21 → 급증 판정 보류 (기준선 쌓는 중)
+[written] daily/2026-11-05.csv, days.csv, health/2026-11-05.csv
+
+=== 최종 현황 (scripts/status.py 와 같은 계산) ===
+2026-11-02 기사   71 정치제외  3 키워드  139 수집률 0.944 완전
+2026-11-03 기사   73 정치제외  3 키워드  154 수집률 1.0 완전
+2026-11-04 기사   67 정치제외  2 키워드  145 수집률 0.611 불완전: coverage_low
+2026-11-05 기사   91 정치제외  3 키워드  158 수집률 1.0 완전
+{'days_recorded': 4, 'complete_days': 3, 'required': 21, 'ready': False, 'first_complete_day': '2026-11-02', 'last_day': '2026-11-05'}

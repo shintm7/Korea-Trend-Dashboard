@@ -1,0 +1,37 @@
+test_apply_alias_map_sums_counts (test_alias.AliasTests.test_apply_alias_map_sums_counts) ... ok
+test_initials_detected (test_alias.AliasTests.test_initials_detected) ... ok
+test_initials_need_evidence (test_alias.AliasTests.test_initials_need_evidence) ... ok
+test_no_merge_for_single_form (test_alias.AliasTests.test_no_merge_for_single_form) ... ok
+test_space_and_case_merge_with_stable_registry (test_alias.AliasTests.test_space_and_case_merge_with_stable_registry) ... ok
+test_baseline_needs_21_complete_days (test_alias.BaselineTests.test_baseline_needs_21_complete_days) ... ok
+test_empty_title (test_extract.ExtractTests.test_empty_title) ... ok
+test_non_political_not_filtered (test_extract.ExtractTests.test_non_political_not_filtered) ... ok
+test_noun_units_and_ngrams (test_extract.ExtractTests.test_noun_units_and_ngrams) ... ok
+test_political_filter (test_extract.ExtractTests.test_political_filter) ... ok
+test_stopwords_removed (test_extract.ExtractTests.test_stopwords_removed) ... ok
+test_tags_do_not_change_hash (test_extract.ExtractTests.test_tags_do_not_change_hash) ... ok
+test_dc_date_only (test_feeds.ParseTests.test_dc_date_only) ... ok
+test_euc_kr (test_feeds.ParseTests.test_euc_kr) ... ok
+test_html_block_page_is_parse_error (test_feeds.ParseTests.test_html_block_page_is_parse_error) ... ok
+test_normal (test_feeds.ParseTests.test_normal) ... ok
+test_stale_feed_flagged (test_feeds.ParseTests.test_stale_feed_flagged) ... ok
+test_truncated_xml_still_reads_items (test_feeds.ParseTests.test_truncated_xml_still_reads_items) ... ok
+test_block_page_is_parse_error (test_http.HttpTests.test_block_page_is_parse_error) ... ok
+test_connection_refused_is_network_error (test_http.HttpTests.test_connection_refused_is_network_error) ... ok
+test_http_errors (test_http.HttpTests.test_http_errors) ... ok
+test_ok_and_conditional_get (test_http.HttpTests.test_ok_and_conditional_get) ... ok
+test_robots_blocked (test_http.HttpTests.test_robots_blocked) ... ok
+test_dedupe_across_runs_and_outlets (test_pipeline.PipelineTests.test_dedupe_across_runs_and_outlets) ... ok
+test_headline_text_is_not_stored (test_pipeline.PipelineTests.test_headline_text_is_not_stored) ... ok
+test_old_items_ignored (test_pipeline.PipelineTests.test_old_items_ignored) ... ok
+test_open_days_are_not_finalized (test_pipeline.PipelineTests.test_open_days_are_not_finalized) ... ok
+test_outage_marks_day_incomplete (test_pipeline.PipelineTests.test_outage_marks_day_incomplete) ... ok
+test_politics_dropped_and_counted (test_pipeline.PipelineTests.test_politics_dropped_and_counted) ... ok
+test_robots_blocked_feed_not_counted_as_outage (test_pipeline.PipelineTests.test_robots_blocked_feed_not_counted_as_outage) ... ok
+test_state_reset_flag (test_pipeline.PipelineTests.test_state_reset_flag) ... ok
+test_volume_drop_flagged (test_pipeline.PipelineTests.test_volume_drop_flagged) ... ok
+
+----------------------------------------------------------------------
+Ran 32 tests in 3.137s
+
+OK
