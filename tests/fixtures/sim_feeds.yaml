@@ -1,1 +1,7 @@
-
+feeds:
+  - {id: aaa-economy, pub: aaa, name: 가일보, section: economy, title: 경제, url: "https://example.com/aaa/eco", enabled: true}
+  - {id: aaa-ent, pub: aaa, name: 가일보, section: entertainment, title: 연예, url: "https://example.com/aaa/ent", enabled: true}
+  - {id: bbb-economy, pub: bbb, name: 나신문, section: economy, title: 경제, url: "https://example.com/bbb/eco", enabled: true}
+  - {id: bbb-ent, pub: bbb, name: 나신문, section: entertainment, title: 연예, url: "https://example.com/bbb/ent", enabled: true}
+  - {id: ccc-economy, pub: ccc, name: 다뉴스, section: economy, title: 경제, url: "https://example.com/ccc/eco", enabled: true}
+  - {id: ccc-ent, pub: ccc, name: 다뉴스, section: entertainment, title: 연예, url: "https://example.com/ccc/ent", enabled: true}
