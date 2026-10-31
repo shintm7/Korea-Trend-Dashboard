@@ -1,0 +1,5 @@
+date,stories,politics_dropped,keywords_stored,keywords_below_min,runs,expected_feeds,coverage,stale_feed_runs,incomplete,flags
+2026-11-02,71,3,139,46,12,6,0.944,0,0,
+2026-11-03,73,3,154,50,12,6,1.0,0,0,
+2026-11-04,67,2,145,61,12,6,0.611,0,1,coverage_low
+2026-11-05,91,3,158,69,12,6,1.0,0,0,
