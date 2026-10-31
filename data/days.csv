@@ -1,0 +1,2 @@
+date,stories,politics_dropped,keywords_stored,keywords_below_min,runs,expected_feeds,coverage,stale_feed_runs,incomplete,flags
+2026-10-30,949,33,1423,6043,0,0,0.0,0,1,runs_low|coverage_low
