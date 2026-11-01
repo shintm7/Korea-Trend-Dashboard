@@ -250,5 +250,56 @@ class CollectPathTests(unittest.TestCase):
         self.assertEqual([f[:2] for f in s["failures"]], [["a-eco", "stale"]])
 
 
+    def test_naive_kst_feed_and_stale_log_detail_through_collect(self):
+        """시간대 없는 한국 시각 피드(naive_kst: true)를 collect.py 로 읽고, 정지 로그에 상태·경과 시간이 나온다."""
+        def naive(ts_kst):
+            return ("<?xml version=\"1.0\" encoding=\"utf-8\"?><rss version=\"2.0\" "
+                    "xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><channel><title>t</title>"
+                    f"<item><title>편의점 디저트 신상 출시</title><link>https://e.com/1</link><dc:date>{ts_kst}</dc:date></item>"
+                    "</channel></rss>").encode()
+
+        body = naive("2026-11-02 09:00:00")                     # 시간대 표시 없음: 실제로는 한국 시각 09:00
+
+        class H(http.server.BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def do_GET(self):
+                if self.path == "/robots.txt":
+                    out, code, extra = b"User-agent: *\nAllow: /\n", 200, {}
+                elif self.path == "/feed.xml" and self.headers.get("If-None-Match") == '"v1"':
+                    self.send_response(304)
+                    self.end_headers()
+                    return
+                elif self.path == "/feed.xml":
+                    out, code, extra = body, 200, {"ETag": '"v1"'}
+                else:
+                    out, code, extra = b"nope", 404, {}
+                self.send_response(code)
+                self.send_header("Content-Length", str(len(out)))
+                for k, v in extra.items():
+                    self.send_header(k, v)
+                self.end_headers()
+                self.wfile.write(out)
+
+        srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), H)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        self.addCleanup(srv.shutdown)
+        f = feed("a-eco", f"http://127.0.0.1:{srv.server_address[1]}/feed.xml")
+        f["naive_kst"] = True
+        env = Env([f])
+
+        s, _ = env.collect("2026-11-02T10:00:00+09:00", fixtures=False)
+        self.assertEqual(s["feeds_ok"], 1)                      # 09:00 KST 기사는 1시간 전 (보정 없으면 8시간 뒤 미래)
+        st = json.loads(gzip.open(env.state / "state.json.gz", "rt", encoding="utf-8").read())
+        self.assertEqual(st["http"]["a-eco"]["newest_ts"], at("2026-11-02", "09:00"))
+        # 기사는 11/2 로 집계된다 (보정 없으면 11/2 18:00 으로 읽혀 지금 시각으로 당겨짐)
+        self.assertTrue(any(k.startswith("2026-11-02:") for k in st["stories"]))
+
+        s, out = env.collect("2026-11-03T12:00:00+09:00", fixtures=False, expect_rc=1)   # 304, 27시간
+        self.assertEqual([f[:2] for f in s["failures"]], [["a-eco", "stale"]])
+        self.assertIn("HTTP 304, 최신 기사 27.0시간 전", out)    # 진단 로그: 상태와 경과 시간
+
+
 if __name__ == "__main__":
     unittest.main()

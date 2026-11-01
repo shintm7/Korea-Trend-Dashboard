@@ -35,6 +35,7 @@ class Feed:
     url: str
     enabled: bool = True
     note: str = ""
+    naive_kst: bool = False   # 기사 시각을 시간대 표시 없이 한국 시각으로 적는 피드. UTC 로 읽혀 9시간 앞서므로 항상 9시간을 되돌린다
 
 
 @dataclasses.dataclass
@@ -71,7 +72,8 @@ def load_feeds(path: str | Path) -> list[Feed]:
     return [Feed(**{k: v for k, v in r.items() if k in names}) for r in raw]
 
 
-def parse_feed_bytes(feed_id: str, content: bytes, now: float, stale_hours: float) -> FetchResult:
+def parse_feed_bytes(feed_id: str, content: bytes, now: float, stale_hours: float,
+                     naive_kst: bool = False) -> FetchResult:
     """바이트로 받은 RSS/Atom을 해석한다. 중간에 잘린 XML도 가능한 만큼 읽는다."""
     parsed = feedparser.parse(content)
     items = []
@@ -82,10 +84,14 @@ def parse_feed_bytes(feed_id: str, content: bytes, now: float, stale_hours: floa
         t = e.get("published_parsed") or e.get("updated_parsed")
         ts = float(calendar.timegm(t)) if t else None
         items.append(Item(title=title, link=e.get("link", ""), ts=ts))
-    # 시간대 표시 없이 한국 시각을 적는 피드는 UTC로 읽혀 9시간 미래로 보인다. 그런 피드는 9시간을 되돌린다.
+    # 시간대 표시 없이 한국 시각을 적는 피드는 UTC로 읽혀 9시간 미래로 보인다.
+    #  - feeds.yaml 에 naive_kst: true 로 표시한 피드는 항상 9시간을 되돌린다 (기사가 드문 분야 피드도 정확히 보정).
+    #  - 표시가 없는 피드는 최근 기사의 25% 이상이 미래일 때만 자동으로 되돌린다 (안전망).
     dated = [i for i in items if i.ts]
     future = [i for i in dated if i.ts > now + 1800]
-    if len(dated) >= 3 and len(future) >= 0.25 * len(dated) and max(i.ts for i in dated) - now <= 9.5 * 3600:
+    auto = (len(dated) >= 3 and len(future) >= 0.25 * len(dated)
+            and max(i.ts for i in dated) - now <= 9.5 * 3600)
+    if dated and (naive_kst or auto):
         for i in dated:
             i.ts -= 9 * 3600
     res = FetchResult(feed_id=feed_id, status="ok", items=items, bozo=bool(parsed.get("bozo")))
@@ -195,7 +201,7 @@ class HttpFetcher:
                 if r.status_code >= 400:
                     return FetchResult(feed.id, "http_error", http=r.status_code, robots=verdict,
                                        error=f"HTTP {r.status_code}", elapsed=time.time() - t0)
-                res = parse_feed_bytes(feed.id, r.content, now, self.cfg["stale_feed_hours"])
+                res = parse_feed_bytes(feed.id, r.content, now, self.cfg["stale_feed_hours"], feed.naive_kst)
                 res.http, res.robots, res.elapsed = r.status_code, verdict, time.time() - t0
                 res.etag, res.last_modified = r.headers.get("ETag"), r.headers.get("Last-Modified")
                 if res.status == "parse_error":
@@ -229,6 +235,6 @@ class FixtureFetcher:
         p = self.dir / f"{feed.id}.xml"
         if not p.exists():
             return FetchResult(feed.id, "http_error", http=404, error="HTTP 404 (fixture 없음)")
-        res = parse_feed_bytes(feed.id, p.read_bytes(), now, self.cfg["stale_feed_hours"])
+        res = parse_feed_bytes(feed.id, p.read_bytes(), now, self.cfg["stale_feed_hours"], feed.naive_kst)
         res.http = 200
         return res

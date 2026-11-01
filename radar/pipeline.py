@@ -67,7 +67,11 @@ def run_once(cfg: dict, feeds: list[Feed], fetcher, state: dict, now: float, rul
             fs["stale"] += 1
             stale_n += 1
         if not res.ok or res.stale:
-            failures.append((res.feed_id, "stale" if res.stale and res.ok else res.status, res.error))
+            detail = res.error
+            if res.stale and res.ok and res.newest_ts is not None:
+                # 정지 의심이 서버의 304 때문인지 200 때문인지, 얼마나 오래됐는지 로그에서 바로 보이게 한다
+                detail = f"HTTP {res.http}, 최신 기사 {(now - res.newest_ts) / 3600:.1f}시간 전"
+            failures.append((res.feed_id, "stale" if res.stale and res.ok else res.status, detail))
         if res.status == "ok":
             # 조건부 요청용 ETag/Last-Modified 와 함께, 304 때 쓸 최신 기사 시각을 보관한다.
             # 이번 응답에서 새 시각을 얻지 못하면(날짜 없는 응답, 잘린 XML) 이전에 보관한 시각을 지우지 않는다.

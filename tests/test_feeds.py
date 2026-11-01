@@ -62,5 +62,21 @@ class ParseTests(unittest.TestCase):
         self.assertGreater(max(i.ts for i in r.items), NOW + 3600)
 
 
+    def test_naive_kst_flag_shifts_even_a_slow_feed(self):
+        # 기사가 드문 분야 피드: 마지막 기사 1건만 최근이라 자동 보정(25% 규칙)이 걸리지 않는다
+        items = [("방금 기사", NOW + 9 * 3600 - 1800)] + [(f"옛 기사 {i}", NOW + 9 * 3600 - (i + 1) * 20 * 3600)
+                                                             for i in range(1, 9)]
+        auto = parse_feed_bytes("f", rss(items), NOW, 24)
+        self.assertGreater(max(i.ts for i in auto.items), NOW + 3600)          # 표시 없이는 미래로 남는다 (기존 한계)
+        flagged = parse_feed_bytes("f", rss(items), NOW, 24, naive_kst=True)
+        self.assertAlmostEqual(max(i.ts for i in flagged.items), NOW - 1800, delta=2)
+        self.assertFalse(flagged.stale)
+
+    def test_naive_kst_flag_does_not_shift_twice(self):
+        items = [(f"기사 {i}", NOW + 9 * 3600 - i * 1800) for i in range(6)]    # 자동 보정 조건도 만족
+        r = parse_feed_bytes("f", rss(items), NOW, 24, naive_kst=True)
+        self.assertAlmostEqual(max(i.ts for i in r.items), NOW, delta=2)       # 9시간만 되돌림 (18시간 아님)
+
+
 if __name__ == "__main__":
     unittest.main()

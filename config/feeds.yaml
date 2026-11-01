@@ -518,6 +518,7 @@ feeds:
   url: http://www.sisajournal.com/rss/allArticle.xml
   enabled: false
   note: "전체 피드는 정치 기사가 섞여 분야별 피드로 대체"
+  naive_kst: true
 - id: sisajournal-society
   pub: sisajournal
   name: 시사저널
@@ -525,6 +526,7 @@ feeds:
   title: 사회
   url: http://www.sisajournal.com/rss/S1N47.xml
   enabled: true
+  naive_kst: true
 - id: sisajournal-economy
   pub: sisajournal
   name: 시사저널
@@ -532,6 +534,7 @@ feeds:
   title: 경제
   url: http://www.sisajournal.com/rss/S1N54.xml
   enabled: true
+  naive_kst: true
 - id: sisajournal-culture
   pub: sisajournal
   name: 시사저널
@@ -539,6 +542,7 @@ feeds:
   title: LIFE
   url: http://www.sisajournal.com/rss/S1N56.xml
   enabled: true
+  naive_kst: true
 - id: sisajournal-international
   pub: sisajournal
   name: 시사저널
@@ -547,6 +551,7 @@ feeds:
   url: http://www.sisajournal.com/rss/S1N59.xml
   enabled: false
   note: "2026-10-31 probe: 정지 의심 (최신 기사 135.3시간 전)"
+  naive_kst: true
 - id: sisajournal-health
   pub: sisajournal
   name: 시사저널
@@ -555,6 +560,7 @@ feeds:
   url: http://www.sisajournal.com/rss/S2N106.xml
   enabled: false
   note: "2026-10-31 probe: http_error HTTP 404"
+  naive_kst: true
 - id: sisajournal-culture-2
   pub: sisajournal
   name: 시사저널
@@ -563,6 +569,7 @@ feeds:
   url: http://www.sisajournal.com/rss/S2N107.xml
   enabled: false
   note: "2026-10-31 probe: http_error HTTP 404"
+  naive_kst: true
 - id: ablenews-all
   pub: ablenews
   name: 에이블뉴스
@@ -679,6 +686,7 @@ feeds:
   url: https://www.ildaro.com/rss/rss_news.php
   enabled: false
   note: "소규모 매체라 기본 비활성"
+  naive_kst: true
 - id: chosun-all
   pub: chosun
   name: 조선일보
@@ -801,6 +809,7 @@ feeds:
   url: https://www.tongilnews.com/rss/allArticle.xml
   enabled: false
   note: "특정 주제 매체라 기본 비활성"
+  naive_kst: true
 - id: tongilnews-international
   pub: tongilnews
   name: 통일뉴스
@@ -809,6 +818,7 @@ feeds:
   url: https://www.tongilnews.com/rss/S1N7.xml
   enabled: false
   note: "특정 주제 매체라 기본 비활성"
+  naive_kst: true
 - id: tongilnews-culture
   pub: tongilnews
   name: 통일뉴스
@@ -817,6 +827,7 @@ feeds:
   url: https://www.tongilnews.com/rss/S1N10.xml
   enabled: false
   note: "특정 주제 매체라 기본 비활성"
+  naive_kst: true
 - id: tongilnews-international-2
   pub: tongilnews
   name: 통일뉴스
@@ -825,6 +836,7 @@ feeds:
   url: https://www.tongilnews.com/rss/S1N18.xml
   enabled: false
   note: "특정 주제 매체라 기본 비활성"
+  naive_kst: true
 - id: pressian-all
   pub: pressian
   name: 프레시안
@@ -833,6 +845,7 @@ feeds:
   url: https://www.pressian.com/api/v3/site/rss/news
   enabled: false
   note: "전체 피드는 정치 기사가 섞여 분야별 피드로 대체"
+  naive_kst: true
 - id: pressian-international
   pub: pressian
   name: 프레시안
@@ -840,6 +853,7 @@ feeds:
   title: 세계
   url: https://www.pressian.com/api/v3/site/rss/section/65
   enabled: true
+  naive_kst: true
 - id: pressian-economy
   pub: pressian
   name: 프레시안
@@ -847,6 +861,7 @@ feeds:
   title: 경제
   url: https://www.pressian.com/api/v3/site/rss/section/67
   enabled: true
+  naive_kst: true
 - id: pressian-society
   pub: pressian
   name: 프레시안
@@ -854,6 +869,7 @@ feeds:
   title: 사회
   url: https://www.pressian.com/api/v3/site/rss/section/68
   enabled: true
+  naive_kst: true
 - id: pressian-culture
   pub: pressian
   name: 프레시안
@@ -861,6 +877,7 @@ feeds:
   title: 문화
   url: https://www.pressian.com/api/v3/site/rss/section/69
   enabled: true
+  naive_kst: true
 - id: pressian-sports
   pub: pressian
   name: 프레시안
@@ -869,6 +886,7 @@ feeds:
   url: https://www.pressian.com/api/v3/site/rss/section/70
   enabled: false
   note: "2026-10-31 probe: 정지 의심 (최신 기사 98.1시간 전)"
+  naive_kst: true
 - id: hani-all
   pub: hani
   name: 한겨레신문

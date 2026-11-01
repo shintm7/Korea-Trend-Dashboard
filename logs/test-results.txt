@@ -5,13 +5,18 @@ test_no_merge_for_single_form (test_alias.AliasTests.test_no_merge_for_single_fo
 test_space_and_case_merge_with_stable_registry (test_alias.AliasTests.test_space_and_case_merge_with_stable_registry) ... ok
 test_baseline_needs_21_complete_days (test_alias.BaselineTests.test_baseline_needs_21_complete_days) ... ok
 test_304_freshness_through_collect_with_fixtures (test_e2e_collect.CollectPathTests.test_304_freshness_through_collect_with_fixtures) ... ok
-test_304_through_real_http_path_and_exit_code (test_e2e_collect.CollectPathTests.test_304_through_real_http_path_and_exit_code) ... /usr/local/lib/python3.13/unittest/case.py:655: ResourceWarning: unclosed <socket.socket fd=3, family=2, type=1, proto=0, laddr=('127.0.0.1', 38013)>
+test_304_through_real_http_path_and_exit_code (test_e2e_collect.CollectPathTests.test_304_through_real_http_path_and_exit_code) ... /usr/local/lib/python3.13/unittest/case.py:655: ResourceWarning: unclosed <socket.socket fd=3, family=2, type=1, proto=0, laddr=('127.0.0.1', 33035)>
   self.doCleanups()
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
 ok
 test_daily_gz_written_by_collect_and_finalized_day_not_overwritten (test_e2e_collect.CollectPathTests.test_daily_gz_written_by_collect_and_finalized_day_not_overwritten) ... ok
+test_naive_kst_feed_and_stale_log_detail_through_collect (test_e2e_collect.CollectPathTests.test_naive_kst_feed_and_stale_log_detail_through_collect)
+시간대 없는 한국 시각 피드(naive_kst: true)를 collect.py 로 읽고, 정지 로그에 상태·경과 시간이 나온다. ... /usr/local/lib/python3.13/unittest/case.py:655: ResourceWarning: unclosed <socket.socket fd=3, family=2, type=1, proto=0, laddr=('127.0.0.1', 46405)>
+  self.doCleanups()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
 test_newest_ts_survives_an_undated_200_then_304_goes_stale (test_e2e_collect.CollectPathTests.test_newest_ts_survives_an_undated_200_then_304_goes_stale)
-날짜 있는 200 → 날짜 없는 200(ETag 바뀜) → 304. 보존된 시각으로 정지 판정이 되어야 한다. ... /usr/local/lib/python3.13/unittest/case.py:655: ResourceWarning: unclosed <socket.socket fd=3, family=2, type=1, proto=0, laddr=('127.0.0.1', 43537)>
+날짜 있는 200 → 날짜 없는 200(ETag 바뀜) → 304. 보존된 시각으로 정지 판정이 되어야 한다. ... /usr/local/lib/python3.13/unittest/case.py:655: ResourceWarning: unclosed <socket.socket fd=3, family=2, type=1, proto=0, laddr=('127.0.0.1', 43329)>
   self.doCleanups()
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
 ok
@@ -24,6 +29,8 @@ test_tags_do_not_change_hash (test_extract.ExtractTests.test_tags_do_not_change_
 test_dc_date_only (test_feeds.ParseTests.test_dc_date_only) ... ok
 test_euc_kr (test_feeds.ParseTests.test_euc_kr) ... ok
 test_html_block_page_is_parse_error (test_feeds.ParseTests.test_html_block_page_is_parse_error) ... ok
+test_naive_kst_flag_does_not_shift_twice (test_feeds.ParseTests.test_naive_kst_flag_does_not_shift_twice) ... ok
+test_naive_kst_flag_shifts_even_a_slow_feed (test_feeds.ParseTests.test_naive_kst_flag_shifts_even_a_slow_feed) ... ok
 test_naive_kst_stamps_read_as_utc_are_shifted_back (test_feeds.ParseTests.test_naive_kst_stamps_read_as_utc_are_shifted_back) ... ok
 test_normal (test_feeds.ParseTests.test_normal) ... ok
 test_single_future_item_is_not_shifted (test_feeds.ParseTests.test_single_future_item_is_not_shifted) ... ok
@@ -61,7 +68,7 @@ test_undated_items_are_not_recounted_on_later_days (test_pipeline.PipelineTests.
 test_volume_drop_flagged (test_pipeline.PipelineTests.test_volume_drop_flagged) ... ok
 
 ----------------------------------------------------------------------
-Ran 54 tests in 25.925s
+Ran 57 tests in 30.065s
 
 OK
-<sys>:0: ResourceWarning: unclosed <socket.socket fd=3, family=2, type=1, proto=0, laddr=('127.0.0.1', 39365)>
+<sys>:0: ResourceWarning: unclosed <socket.socket fd=3, family=2, type=1, proto=0, laddr=('127.0.0.1', 37799)>
