@@ -68,10 +68,14 @@ def run_once(cfg: dict, feeds: list[Feed], fetcher, state: dict, now: float, rul
             stale_n += 1
         if not res.ok or res.stale:
             failures.append((res.feed_id, "stale" if res.stale and res.ok else res.status, res.error))
-        if res.status == "ok" and (res.etag or res.last_modified or res.newest_ts is not None):
-            # 조건부 요청용 ETag/Last-Modified 와 함께, 304 때 쓸 최신 기사 시각을 보관한다
-            state["http"][res.feed_id] = {"etag": res.etag, "last_modified": res.last_modified,
-                                          "newest_ts": res.newest_ts}
+        if res.status == "ok":
+            # 조건부 요청용 ETag/Last-Modified 와 함께, 304 때 쓸 최신 기사 시각을 보관한다.
+            # 이번 응답에서 새 시각을 얻지 못하면(날짜 없는 응답, 잘린 XML) 이전에 보관한 시각을 지우지 않는다.
+            prev = state["http"].get(res.feed_id, {})
+            newest = res.newest_ts if res.newest_ts is not None else prev.get("newest_ts")
+            if res.etag or res.last_modified or newest is not None:
+                state["http"][res.feed_id] = {"etag": res.etag, "last_modified": res.last_modified,
+                                              "newest_ts": newest}
 
         for it in res.items:
             ts = it.ts
