@@ -23,18 +23,33 @@ test_connection_refused_is_network_error (test_http.HttpTests.test_connection_re
 test_http_errors (test_http.HttpTests.test_http_errors) ... ok
 test_ok_and_conditional_get (test_http.HttpTests.test_ok_and_conditional_get) ... ok
 test_robots_blocked (test_http.HttpTests.test_robots_blocked) ... ok
+test_304_after_24h_is_stale_and_lowers_coverage (test_pipeline.NotModifiedTests.test_304_after_24h_is_stale_and_lowers_coverage) ... ok
+test_304_within_24h_of_last_article_is_fresh (test_pipeline.NotModifiedTests.test_304_within_24h_of_last_article_is_fresh) ... ok
+test_conditional_validators_are_kept_with_timestamp (test_pipeline.NotModifiedTests.test_conditional_validators_are_kept_with_timestamp) ... ok
+test_new_200_then_304_uses_the_new_timestamp (test_pipeline.NotModifiedTests.test_new_200_then_304_uses_the_new_timestamp) ... ok
+test_normal_304_is_ok (test_pipeline.NotModifiedTests.test_normal_304_is_ok) ... ok
+test_stale_304_feeds_make_the_day_incomplete (test_pipeline.NotModifiedTests.test_stale_304_feeds_make_the_day_incomplete) ... ok
+test_state_loss_means_no_stale_judgement (test_pipeline.NotModifiedTests.test_state_loss_means_no_stale_judgement) ... ok
+test_daily_file_is_gzip_and_legacy_csv_still_readable (test_pipeline.PipelineTests.test_daily_file_is_gzip_and_legacy_csv_still_readable) ... ok
 test_dedupe_across_runs_and_outlets (test_pipeline.PipelineTests.test_dedupe_across_runs_and_outlets) ... ok
+test_display_threshold_is_separate_from_storage (test_pipeline.PipelineTests.test_display_threshold_is_separate_from_storage) ... ok
+test_first_seen_tracks_low_frequency_keyword (test_pipeline.PipelineTests.test_first_seen_tracks_low_frequency_keyword) ... ok
 test_headline_text_is_not_stored (test_pipeline.PipelineTests.test_headline_text_is_not_stored) ... ok
+test_late_items_of_a_finalized_day_do_not_overwrite_it (test_pipeline.PipelineTests.test_late_items_of_a_finalized_day_do_not_overwrite_it) ... ok
+test_leftover_stories_of_recorded_day_are_dropped_not_written (test_pipeline.PipelineTests.test_leftover_stories_of_recorded_day_are_dropped_not_written) ... ok
 test_old_items_ignored (test_pipeline.PipelineTests.test_old_items_ignored) ... ok
 test_open_days_are_not_finalized (test_pipeline.PipelineTests.test_open_days_are_not_finalized) ... ok
 test_outage_marks_day_incomplete (test_pipeline.PipelineTests.test_outage_marks_day_incomplete) ... ok
 test_politics_dropped_and_counted (test_pipeline.PipelineTests.test_politics_dropped_and_counted) ... ok
+test_rewrite_same_day_replaces_other_format (test_pipeline.PipelineTests.test_rewrite_same_day_replaces_other_format) ... ok
 test_robots_blocked_feed_not_counted_as_outage (test_pipeline.PipelineTests.test_robots_blocked_feed_not_counted_as_outage) ... ok
+test_single_article_keywords_are_stored_by_default (test_pipeline.PipelineTests.test_single_article_keywords_are_stored_by_default) ... ok
 test_state_reset_flag (test_pipeline.PipelineTests.test_state_reset_flag) ... ok
+test_store_threshold_still_configurable (test_pipeline.PipelineTests.test_store_threshold_still_configurable) ... ok
 test_undated_items_are_not_recounted_on_later_days (test_pipeline.PipelineTests.test_undated_items_are_not_recounted_on_later_days) ... ok
 test_volume_drop_flagged (test_pipeline.PipelineTests.test_volume_drop_flagged) ... ok
 
 ----------------------------------------------------------------------
-Ran 35 tests in 3.016s
+Ran 50 tests in 3.030s
 
 OK
