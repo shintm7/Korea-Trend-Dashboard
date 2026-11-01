@@ -10,16 +10,17 @@ config/feeds.yaml        피드 목록 (62개 활성, 14개 매체, 정치·오�
 config/settings.yaml     수집 주기·임계값·완전한 날 기준
 config/stopwords.txt     트렌드 신호가 못 되는 일반 단어
 config/politics_terms.txt 정치 헤드라인 제외용 단어
-radar/                   수집·추출·집계·품질 판정 코드
+radar/                   수집·추출·집계·품질 판정 코드 (store.py: 일일 파일 읽기·쓰기, 최초 등장일)
 scripts/collect.py       수집 1회 (Actions가 2시간마다 실행)
 scripts/probe_feeds.py   모든 피드의 접근 가능 여부 점검 (수동 실행)
 scripts/status.py        수집 현황과 급증 판정 가능 여부
 scripts/simulate.py      오프라인 5일 시뮬레이션
-data/daily/날짜.csv      키워드별 일일 집계 (장기 보관)   keyword,n,articles,outlets
+data/daily/날짜.csv.gz   키워드별 일일 집계 (장기 보관, gzip)   keyword,n,articles,outlets  (예전 날짜.csv 도 읽힘)
 data/days.csv            날짜별 품질 기록 (완전한 날 판정)
 data/health/날짜.csv     피드별 수집 건강 기록
 data/aliases/            별칭 이력 (canon.json, alias_map.json, merge_log.csv)
 archive/v1-naver-search/ 기존 네이버 검색어 대시보드 (보관용, 실행되지 않음)
+docs/index.html          임시 안내 화면 (새 대시보드가 준비되면 교체). GitHub Pages 가 이 폴더를 서비스한다
 logs/                    테스트 결과(test-results.txt)와 시뮬레이션 실행 로그(fixture-run.log)
 ```
 
@@ -27,6 +28,8 @@ logs/                    테스트 결과(test-results.txt)와 시뮬레이션 �
 
 1. 이 폴더의 내용을 저장소 루트에 올립니다. 기존 루트의 v1 파일(`scripts/`, `config.json`, `docs/`, `.github/workflows/update.yml`)은
    `archive/v1-naver-search/` 와 겹치므로 **루트에서는 지웁니다.** 그래야 v1의 예약 실행이 멈춥니다.
+   v1 의 실제 데이터 `docs/data.json` 은 삭제하지 말고 `archive/v1-naver-search/docs/` 로 옮깁니다 (GitHub 웹에서 파일 편집 → 파일명에 새 경로를 입력하면 이동됩니다).
+   `docs/index.html` 은 이 패키지의 임시 안내 화면으로 덮어씁니다.
 2. Settings → Actions → General → Workflow permissions 를 **Read and write** 로 설정합니다.
 3. Actions 탭 → **Probe RSS feeds** → Run workflow. 결과 표(실행 요약)와 `probe-report` 아티팩트가 나옵니다.
    `실패`·`정지 의심` 피드는 `config/feeds.yaml` 에서 `enabled: false` 로 바꿉니다.
@@ -40,10 +43,19 @@ logs/                    테스트 결과(test-results.txt)와 시뮬레이션 �
 - **중복 제거**: 정규화한 제목의 해시로 같은 기사를 한 건으로 셉니다(통신 기사가 여러 매체에 실려도 1건). 매체 수(`outlets`)는 따로 셉니다.
 - **키워드**: 어절 안에서 이어진 명사 묶음과 구성 명사, 그리고 이어진 2~3어절의 명사 묶음. 쉼표·말줄임표를 건너뛰는 조합은 만들지 않습니다.
 - **정치 제외**: 정치 분야 피드는 목록에서 뺐고, 다른 분야에 섞인 정치 헤드라인은 `politics_terms.txt` 로 한 번 더 거릅니다. 거른 건수는 `days.csv` 에 남습니다.
+- **304 응답**: 서버가 "변경 없음"(304)으로 답해도 피드별로 마지막 최신 기사 시각을 상태에 보관해 24시간을 넘기면 정지 의심으로 셉니다. 보관한 시각이 없으면(상태 유실, 날짜 없는 피드) 판단하지 않습니다.
 - **상태**: 수집 중간 상태(해시·키워드·매체)는 git이 아니라 Actions **캐시**에 둡니다. 헤드라인이 git 기록에 영구히 남지 않게 하려는 것입니다.
+- **확정된 날의 기사 무시**: 확정한 날에 발행된 기사가 36시간 창에 남아 다시 들어오면 확정 파일을 덮어쓰므로 건너뜁니다(`closed`). 이미 확정된 날의 낙오 기사만 상태에 남았을 때도 파일을 덮어쓰지 않습니다.
 - **날 확정**: 오늘·어제는 열려 있어 상태에서 매번 다시 계산하고(중복 집계 없음), 이틀 지난 날부터 `data/` 에 파일로 확정해 커밋합니다. 커밋은 하루 한 번 정도입니다.
 - **별칭**: 띄어쓰기·대소문자만 다른 표기(`두바이쫀득쿠키` = `두바이 쫀득 쿠키`)는 저장할 때 합칩니다. 줄임말(`두쫀쿠`)은 원자료를 건드리지 않고
   `alias_map.json` 에만 기록하며, 분석할 때 `radar.alias.apply_alias_map()` 으로 합칩니다. 잘못 합쳤으면 그 줄을 지우면 됩니다. 모든 병합은 `merge_log.csv` 에 남습니다.
+
+## 저장 기준과 표시 기준
+
+- **저장**: 하루 기사 1건뿐인 키워드도 일일 파일에 남깁니다 (`min_articles_to_store: 1`). 헤드라인 원문을 보관하지 않으므로 한 번 버린 1건 키워드는 되살릴 수 없고, 1건 등장이 바로 초기 신호이기 때문입니다.
+- **표시**: 화면·분석에서 보여 주는 기준은 따로 둡니다 (`min_articles_to_display: 2`). `radar.store.read_daily(data_dir, day, min_articles=2)` 처럼 읽을 때 적용합니다.
+- **최초 등장일**: `radar.store.first_seen(data_dir)` 가 일일 파일을 날짜순으로 훑어 키워드별 첫 등장일을 돌려줍니다. 일일 파일에 이미 모든 키워드가 있어 별도 색인 파일은 두지 않았습니다. 기록이 시작된 첫날 나온 키워드는 그 전부터 있었을 수 있습니다.
+- **용량**: 1건짜리가 많아 행 수가 늘어나므로 gzip 으로 저장합니다. 첫 날이 확정되면 `data/daily/` 파일 크기를 확인하세요. 너무 크면 `min_articles_to_store` 를 올리거나 1건짜리 3어절 조합만 거르도록 조정할 수 있습니다 (올리는 것은 쉽지만 낮춰서 과거를 되살릴 수는 없습니다).
 
 ## 장애를 하락으로 오인하지 않는 장치
 
@@ -52,6 +64,7 @@ logs/                    테스트 결과(test-results.txt)와 시뮬레이션 �
 | 플래그 | 뜻 |
 |---|---|
 | `coverage_low` | 정상 수집한 피드 비율이 70% 미만 (정지 의심 피드는 정상으로 세지 않음) |
+
 | `runs_low` | 하루 6회 미만 실행 (예약 실행 누락) |
 | `volume_low` | 기사 수가 최근 완전한 날들의 중앙값의 절반 미만 |
 | `state_reset` | 캐시 상태가 사라져 새로 시작함 |
