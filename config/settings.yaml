@@ -11,7 +11,9 @@ state_keep_days: 2             # 오늘과 어제 분량만 상태에 보관, �
 
 ngram_max: 3                   # 2~3어절 조합까지 추출
 max_keywords_per_headline: 80
-min_articles_to_store: 2       # 하루 기사 수가 이 값 미만인 키워드는 저장하지 않는다 (합계만 meta에 기록)
+min_articles_to_store: 1       # 하루 기사 수가 이 값 미만인 키워드는 저장하지 않는다. 1 = 하루 1건 키워드도 저장 (초기 신호 보존)
+min_articles_to_display: 2     # 화면·분석에서 보여 주는 기준. 저장 기준과 별개이며 store.read_daily(min_articles=)로 적용
+daily_gzip: true               # 일일 집계를 날짜.csv.gz 로 저장 (공개 저장소 용량 절약). 예전 날짜.csv 도 읽을 수 있다
 
 # 완전한 날 판정. 이 기준을 하나라도 어기면 '불완전한 날'로 표시해 기준선과 급증 계산에서 뺀다
 expected_runs_per_day: 12
