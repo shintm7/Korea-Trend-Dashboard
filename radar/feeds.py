@@ -211,6 +211,7 @@ class FixtureFetcher:
 
     <dir>/<feed_id>.xml          정상 응답
     <dir>/<feed_id>.<status>     http_error / timeout / robots_blocked 같은 실패 상황
+    <dir>/<feed_id>.not_modified 304 응답 (가장 먼저 검사)
     파일이 없으면 http_error(404)로 처리한다.
     """
 
@@ -219,6 +220,8 @@ class FixtureFetcher:
 
     def fetch(self, feed: Feed, now: float | None = None, use_conditional: bool = True) -> FetchResult:
         now = now or time.time()
+        if (self.dir / f"{feed.id}.not_modified").exists():
+            return FetchResult(feed.id, "not_modified", http=304)
         for status in ("robots_blocked", "timeout", "network_error", "http_error"):
             if (self.dir / f"{feed.id}.{status}").exists():
                 return FetchResult(feed.id, status, http=503 if status == "http_error" else None,
