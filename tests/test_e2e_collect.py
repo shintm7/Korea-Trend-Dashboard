@@ -190,6 +190,65 @@ class CollectPathTests(unittest.TestCase):
         st = json.loads(gzip.open(env.state / "state.json.gz", "rt", encoding="utf-8").read())
         self.assertEqual(st["http"]["a-eco"]["etag"], '"v1"')                     # ETag 도 유지된다
 
+    def test_newest_ts_survives_an_undated_200_then_304_goes_stale(self):
+        """날짜 있는 200 → 날짜 없는 200(ETag 바뀜) → 304. 보존된 시각으로 정지 판정이 되어야 한다."""
+        dated = rss([("편의점 디저트 신상 출시", at("2026-11-02", "09:00"))])
+        undated = (b'<?xml version="1.0" encoding="utf-8"?><rss version="2.0"><channel><title>t</title>'
+                   b'<item><title>' + "삼성전자 HBM4 양산 돌입".encode() + b'</title><link>https://e.com/2</link></item>'
+                   b'</channel></rss>')
+        mode = {"body": dated, "etag": '"v1"'}
+
+        class H(http.server.BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def do_GET(self):
+                if self.path == "/robots.txt":
+                    out, code, extra = b"User-agent: *\nAllow: /\n", 200, {}
+                elif self.path == "/feed.xml" and self.headers.get("If-None-Match") == mode["etag"]:
+                    self.send_response(304)
+                    self.end_headers()
+                    return
+                elif self.path == "/feed.xml":
+                    out, code, extra = mode["body"], 200, {"ETag": mode["etag"]}
+                else:
+                    out, code, extra = b"nope", 404, {}
+                self.send_response(code)
+                self.send_header("Content-Length", str(len(out)))
+                for k, v in extra.items():
+                    self.send_header(k, v)
+                self.end_headers()
+                self.wfile.write(out)
+
+        srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), H)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        self.addCleanup(srv.shutdown)
+        env = Env([feed("a-eco", f"http://127.0.0.1:{srv.server_address[1]}/feed.xml")])
+
+        def state_http():
+            return json.loads(gzip.open(env.state / "state.json.gz", "rt", encoding="utf-8").read())["http"]["a-eco"]
+
+        # 1. 날짜가 있는 RSS → newest_ts 저장
+        env.collect("2026-11-02T10:00:00+09:00", fixtures=False)
+        self.assertEqual(state_http()["newest_ts"], at("2026-11-02", "09:00"))
+        self.assertEqual(state_http()["etag"], '"v1"')
+
+        # 2. 날짜 없는 RSS 를 200 으로 수집 (ETag 는 바뀜)
+        mode.update(body=undated, etag='"v2"')
+        s, _ = env.collect("2026-11-02T12:00:00+09:00", fixtures=False)
+        self.assertEqual(s["statuses"], {"ok": 1})
+        self.assertEqual(s["nodate"], 1)
+        # 3. 기존 newest_ts 가 사라지지 않고, ETag 는 새 값으로 갱신된다
+        self.assertEqual(state_http()["newest_ts"], at("2026-11-02", "09:00"))
+        self.assertEqual(state_http()["etag"], '"v2"')
+
+        # 4. 이후 304: 보존된 시각 기준으로 23시간은 정상, 27시간은 정지 의심
+        s, _ = env.collect("2026-11-03T08:00:00+09:00", fixtures=False)
+        self.assertEqual((s["statuses"], s["feeds_ok"]), ({"not_modified": 1}, 1))
+        s, _ = env.collect("2026-11-03T12:00:00+09:00", fixtures=False, expect_rc=1)
+        self.assertEqual((s["feeds_ok"], s["feeds_expected"]), (0, 1))
+        self.assertEqual([f[:2] for f in s["failures"]], [["a-eco", "stale"]])
+
 
 if __name__ == "__main__":
     unittest.main()
