@@ -26,6 +26,10 @@ jobs:
 
       - run: pip install -r requirements.txt
 
+      # 코드가 깨진 채 올라가면 data/ 를 훼손할 수 있으므로, 테스트가 통과해야만 수집한다 (실패하면 아래 단계는 모두 건너뜀)
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+
       # 수집 상태(헤드라인 원문 없이 해시·키워드만)는 git이 아니라 캐시에 둔다
       - name: Restore state
         uses: actions/cache/restore@v4
