@@ -58,12 +58,15 @@ class HttpTests(unittest.TestCase):
     def setUpClass(cls):
         cls.srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
         cls.base = f"http://127.0.0.1:{cls.srv.server_address[1]}"
-        threading.Thread(target=cls.srv.serve_forever, daemon=True).start()
+        cls.thread = threading.Thread(target=cls.srv.serve_forever, daemon=True)
+        cls.thread.start()
         cls.cfg = {**load_settings(), "host_min_interval_sec": 0, "retries": 0, "timeout_sec": 5}
 
     @classmethod
     def tearDownClass(cls):
         cls.srv.shutdown()
+        cls.srv.server_close()
+        cls.thread.join(timeout=5)
 
     def feed(self, path):
         return Feed("t", "p", "P", "economy", "t", self.base + path)

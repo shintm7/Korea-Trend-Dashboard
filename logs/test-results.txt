@@ -1,3 +1,4 @@
+# python3.12.3 (GitHub Actions 와 같은 마이너 버전) -W error::ResourceWarning python -m unittest discover -s tests -v
 test_apply_alias_map_sums_counts (test_alias.AliasTests.test_apply_alias_map_sums_counts) ... ok
 test_initials_detected (test_alias.AliasTests.test_initials_detected) ... ok
 test_initials_need_evidence (test_alias.AliasTests.test_initials_need_evidence) ... ok
@@ -5,21 +6,12 @@ test_no_merge_for_single_form (test_alias.AliasTests.test_no_merge_for_single_fo
 test_space_and_case_merge_with_stable_registry (test_alias.AliasTests.test_space_and_case_merge_with_stable_registry) ... ok
 test_baseline_needs_21_complete_days (test_alias.BaselineTests.test_baseline_needs_21_complete_days) ... ok
 test_304_freshness_through_collect_with_fixtures (test_e2e_collect.CollectPathTests.test_304_freshness_through_collect_with_fixtures) ... ok
-test_304_through_real_http_path_and_exit_code (test_e2e_collect.CollectPathTests.test_304_through_real_http_path_and_exit_code) ... /usr/local/lib/python3.13/unittest/case.py:655: ResourceWarning: unclosed <socket.socket fd=3, family=2, type=1, proto=0, laddr=('127.0.0.1', 33035)>
-  self.doCleanups()
-ResourceWarning: Enable tracemalloc to get the object allocation traceback
-ok
+test_304_through_real_http_path_and_exit_code (test_e2e_collect.CollectPathTests.test_304_through_real_http_path_and_exit_code) ... ok
 test_daily_gz_written_by_collect_and_finalized_day_not_overwritten (test_e2e_collect.CollectPathTests.test_daily_gz_written_by_collect_and_finalized_day_not_overwritten) ... ok
 test_naive_kst_feed_and_stale_log_detail_through_collect (test_e2e_collect.CollectPathTests.test_naive_kst_feed_and_stale_log_detail_through_collect)
-시간대 없는 한국 시각 피드(naive_kst: true)를 collect.py 로 읽고, 정지 로그에 상태·경과 시간이 나온다. ... /usr/local/lib/python3.13/unittest/case.py:655: ResourceWarning: unclosed <socket.socket fd=3, family=2, type=1, proto=0, laddr=('127.0.0.1', 46405)>
-  self.doCleanups()
-ResourceWarning: Enable tracemalloc to get the object allocation traceback
-ok
+시간대 없는 한국 시각 피드(naive_kst: true)를 collect.py 로 읽고, 정지 로그에 상태·경과 시간이 나온다. ... ok
 test_newest_ts_survives_an_undated_200_then_304_goes_stale (test_e2e_collect.CollectPathTests.test_newest_ts_survives_an_undated_200_then_304_goes_stale)
-날짜 있는 200 → 날짜 없는 200(ETag 바뀜) → 304. 보존된 시각으로 정지 판정이 되어야 한다. ... /usr/local/lib/python3.13/unittest/case.py:655: ResourceWarning: unclosed <socket.socket fd=3, family=2, type=1, proto=0, laddr=('127.0.0.1', 43329)>
-  self.doCleanups()
-ResourceWarning: Enable tracemalloc to get the object allocation traceback
-ok
+날짜 있는 200 → 날짜 없는 200(ETag 바뀜) → 304. 보존된 시각으로 정지 판정이 되어야 한다. ... ok
 test_empty_title (test_extract.ExtractTests.test_empty_title) ... ok
 test_non_political_not_filtered (test_extract.ExtractTests.test_non_political_not_filtered) ... ok
 test_noun_units_and_ngrams (test_extract.ExtractTests.test_noun_units_and_ngrams) ... ok
@@ -68,7 +60,6 @@ test_undated_items_are_not_recounted_on_later_days (test_pipeline.PipelineTests.
 test_volume_drop_flagged (test_pipeline.PipelineTests.test_volume_drop_flagged) ... ok
 
 ----------------------------------------------------------------------
-Ran 57 tests in 30.065s
+Ran 57 tests in 30.451s
 
 OK
-<sys>:0: ResourceWarning: unclosed <socket.socket fd=3, family=2, type=1, proto=0, laddr=('127.0.0.1', 37799)>

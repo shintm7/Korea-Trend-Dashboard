@@ -69,6 +69,23 @@ class Env:
         return json.loads((self.state / "last_run.json").read_text(encoding="utf-8")), p.stdout
 
 
+def serve(case, handler):
+    """로컬 HTTP 서버를 띄우고 정리를 등록한다. addCleanup 이라 테스트가 실패해도 항상 실행된다.
+    shutdown → server_close(소켓 닫기, ResourceWarning 방지) → 스레드 join 으로 확인한다."""
+    srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=srv.serve_forever, daemon=True)
+    thread.start()
+
+    def stop():
+        srv.shutdown()
+        srv.server_close()
+        thread.join(timeout=5)
+        case.assertFalse(thread.is_alive(), "테스트 서버 스레드가 종료되지 않았다")
+
+    case.addCleanup(stop)
+    return srv
+
+
 def feed(fid, url="https://example.com/x"):
     return {"id": fid, "pub": fid.split("-")[0], "name": fid, "section": "economy", "title": "경제",
             "url": url, "enabled": True}
@@ -173,9 +190,7 @@ class CollectPathTests(unittest.TestCase):
                 self.end_headers()
                 self.wfile.write(out)
 
-        srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), H)
-        threading.Thread(target=srv.serve_forever, daemon=True).start()
-        self.addCleanup(srv.shutdown)
+        srv = serve(self, H)
         env = Env([feed("a-eco", f"http://127.0.0.1:{srv.server_address[1]}/feed.xml")])
 
         s, _ = env.collect("2026-11-02T10:00:00+09:00", fixtures=False)
@@ -220,9 +235,7 @@ class CollectPathTests(unittest.TestCase):
                 self.end_headers()
                 self.wfile.write(out)
 
-        srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), H)
-        threading.Thread(target=srv.serve_forever, daemon=True).start()
-        self.addCleanup(srv.shutdown)
+        srv = serve(self, H)
         env = Env([feed("a-eco", f"http://127.0.0.1:{srv.server_address[1]}/feed.xml")])
 
         def state_http():
@@ -282,9 +295,7 @@ class CollectPathTests(unittest.TestCase):
                 self.end_headers()
                 self.wfile.write(out)
 
-        srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), H)
-        threading.Thread(target=srv.serve_forever, daemon=True).start()
-        self.addCleanup(srv.shutdown)
+        srv = serve(self, H)
         f = feed("a-eco", f"http://127.0.0.1:{srv.server_address[1]}/feed.xml")
         f["naive_kst"] = True
         env = Env([f])
