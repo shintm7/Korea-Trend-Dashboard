@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import dataclasses
 import hashlib
+import html
 import re
 import unicodedata
 
@@ -38,6 +39,19 @@ def normalize_title(title: str) -> str:
     t = _BRACKET.sub("", t)
     t = _TRAIL.sub("", t)
     return t.strip()
+
+
+_LEFTOVER_ENTITY = re.compile(r"&(?:#\d{1,6}|#x[0-9a-fA-F]{1,6}|[A-Za-z]{2,10});")
+
+
+def clean_for_keywords(norm: str) -> str:
+    """키워드 추출용 문자열. 피드가 HTML 엔티티를 이중으로 이스케이프한 경우(&amp;hellip; → &hellip;)를 풀어
+    hellip, quot 같은 토큰이 키워드가 되지 않게 한다. 중복 제거용 해시(title_hash)는 이 함수를 거치지 않는다
+    (거치면 이미 저장된 해시와 어긋나 같은 기사가 한 번 더 세어진다)."""
+    t = html.unescape(html.unescape(norm))
+    t = unicodedata.normalize("NFKC", t)               # 풀린 … 을 ... 로 통일 (normalize_title 과 같은 형태)
+    t = _LEFTOVER_ENTITY.sub(" ", t)                    # 풀리지 않은 알 수 없는 엔티티는 버린다
+    return re.sub(r"\s+", " ", t).strip()
 
 
 def title_hash(norm: str) -> str:
@@ -94,14 +108,18 @@ def extract(title: str, rules: Rules) -> Extraction:
     if not norm:
         return Extraction(norm, h, [], False)
 
+    text = clean_for_keywords(norm)
+    if not text:
+        return Extraction(norm, h, [], False)
+
     # 정치 헤드라인(문자열 포함 방식)
     for s in rules.political_substrings:
-        if s in norm:
+        if s in text:
             return Extraction(norm, h, [], True)
 
-    toks = get_kiwi().tokenize(norm)
-    char_word = _word_index(norm)
-    words = norm.split()
+    toks = get_kiwi().tokenize(text)
+    char_word = _word_index(text)
+    words = text.split()
 
     # 어절별로 이어진 명사 묶음(run)을 만든다
     runs_by_word: dict[int, list[list]] = {}
@@ -175,8 +193,9 @@ def extract(title: str, rules: Rules) -> Extraction:
             close_segment()
             continue
         segment.append(u)
-        text = words[wi].rstrip(_CLOSERS)
-        if text.endswith(_BREAK_END):
+        tail = words[wi].rstrip(_CLOSERS)
+        # NFKC 가 …(U+2026)를 ...(마침표 셋)로 바꾸므로 둘 다 구절의 끝으로 본다
+        if tail.endswith(_BREAK_END) or tail.endswith("..."):
             close_segment()
     close_segment()
 

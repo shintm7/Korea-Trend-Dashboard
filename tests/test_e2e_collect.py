@@ -312,5 +312,30 @@ class CollectPathTests(unittest.TestCase):
         self.assertIn("HTTP 304, 최신 기사 27.0시간 전", out)    # 진단 로그: 상태와 경과 시간
 
 
+    def test_entities_ellipsis_and_labels_through_collect(self):
+        """수집 → 확정 → 일일 파일까지: HTML 잔재·꼬리표가 키워드로 저장되지 않고, 말줄임표 뒤 조합이 만들어지지 않는다."""
+        env = Env([feed("a-eco"), feed("b-eco")])
+        t = at("2026-11-02", "09:30")
+        # feedparser 를 거친 뒤 &hellip; 로 남는 이중 이스케이프 제목
+        write_feed(env.fx, "a-eco", [("롯데 이동욱 신임 감독&amp;hellip; 부산 현장 인파", t),
+                                     ("뉴시스Pic 편의점 디저트 열풍… 삼성전자 양산", t)])
+        write_feed(env.fx, "b-eco", [("롯데 이동욱 신임 감독&amp;hellip; 부산 현장 인파", t),
+                                     ("[Oh! 이슈] 편의점 디저트 열풍… 삼성전자 양산 소식", t)])
+        env.collect("2026-11-02T10:00:00+09:00")
+        fresh = at("2026-11-04", "00:30")
+        write_feed(env.fx, "a-eco", [("겨울 패딩 판매 호조", fresh)])
+        write_feed(env.fx, "b-eco", [("김장 비용 부담 커져", fresh)])
+        env.collect("2026-11-04T01:00:00+09:00")
+        _, rows = read_gz_csv(env.data / "daily" / "2026-11-02.csv.gz")
+        by = {r["keyword"]: r for r in rows}
+        for junk in ("hellip", "quot", "amp", "뉴시스", "Pic", "뉴시스Pic", "Oh"):
+            self.assertNotIn(junk, by)
+        self.assertEqual(by["이동욱 신임 감독"]["articles"], "1")        # 두 매체가 같은 기사를 실음 → 기사 1건
+        self.assertEqual(by["이동욱 신임 감독"]["outlets"], "2")
+        self.assertNotIn("열풍 삼성전자", by)
+        self.assertIn("편의점 디저트 열풍", by)
+        self.assertIn("삼성전자 양산", by)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,4 +1,4 @@
-# python3.12.3 (GitHub Actions 와 같은 마이너 버전) -W error::ResourceWarning python -m unittest discover -s tests -v
+# python3.12.3 -W error::ResourceWarning python -m unittest discover -s tests -v
 test_apply_alias_map_sums_counts (test_alias.AliasTests.test_apply_alias_map_sums_counts) ... ok
 test_initials_detected (test_alias.AliasTests.test_initials_detected) ... ok
 test_initials_need_evidence (test_alias.AliasTests.test_initials_need_evidence) ... ok
@@ -8,16 +8,22 @@ test_baseline_needs_21_complete_days (test_alias.BaselineTests.test_baseline_nee
 test_304_freshness_through_collect_with_fixtures (test_e2e_collect.CollectPathTests.test_304_freshness_through_collect_with_fixtures) ... ok
 test_304_through_real_http_path_and_exit_code (test_e2e_collect.CollectPathTests.test_304_through_real_http_path_and_exit_code) ... ok
 test_daily_gz_written_by_collect_and_finalized_day_not_overwritten (test_e2e_collect.CollectPathTests.test_daily_gz_written_by_collect_and_finalized_day_not_overwritten) ... ok
+test_entities_ellipsis_and_labels_through_collect (test_e2e_collect.CollectPathTests.test_entities_ellipsis_and_labels_through_collect)
+수집 → 확정 → 일일 파일까지: HTML 잔재·꼬리표가 키워드로 저장되지 않고, 말줄임표 뒤 조합이 만들어지지 않는다. ... ok
 test_naive_kst_feed_and_stale_log_detail_through_collect (test_e2e_collect.CollectPathTests.test_naive_kst_feed_and_stale_log_detail_through_collect)
 시간대 없는 한국 시각 피드(naive_kst: true)를 collect.py 로 읽고, 정지 로그에 상태·경과 시간이 나온다. ... ok
 test_newest_ts_survives_an_undated_200_then_304_goes_stale (test_e2e_collect.CollectPathTests.test_newest_ts_survives_an_undated_200_then_304_goes_stale)
 날짜 있는 200 → 날짜 없는 200(ETag 바뀜) → 304. 보존된 시각으로 정지 판정이 되어야 한다. ... ok
+test_double_escaped_html_entities_do_not_become_keywords (test_extract.ExtractTests.test_double_escaped_html_entities_do_not_become_keywords) ... ok
 test_empty_title (test_extract.ExtractTests.test_empty_title) ... ok
+test_entity_cleanup_does_not_change_dedupe_hash (test_extract.ExtractTests.test_entity_cleanup_does_not_change_dedupe_hash) ... ok
+test_media_label_tokens_removed (test_extract.ExtractTests.test_media_label_tokens_removed) ... ok
 test_non_political_not_filtered (test_extract.ExtractTests.test_non_political_not_filtered) ... ok
 test_noun_units_and_ngrams (test_extract.ExtractTests.test_noun_units_and_ngrams) ... ok
 test_political_filter (test_extract.ExtractTests.test_political_filter) ... ok
 test_stopwords_removed (test_extract.ExtractTests.test_stopwords_removed) ... ok
 test_tags_do_not_change_hash (test_extract.ExtractTests.test_tags_do_not_change_hash) ... ok
+test_trailing_ellipsis_breaks_the_phrase (test_extract.ExtractTests.test_trailing_ellipsis_breaks_the_phrase) ... ok
 test_dc_date_only (test_feeds.ParseTests.test_dc_date_only) ... ok
 test_euc_kr (test_feeds.ParseTests.test_euc_kr) ... ok
 test_html_block_page_is_parse_error (test_feeds.ParseTests.test_html_block_page_is_parse_error) ... ok
@@ -60,6 +66,6 @@ test_undated_items_are_not_recounted_on_later_days (test_pipeline.PipelineTests.
 test_volume_drop_flagged (test_pipeline.PipelineTests.test_volume_drop_flagged) ... ok
 
 ----------------------------------------------------------------------
-Ran 57 tests in 30.451s
+Ran 62 tests in 49.533s
 
 OK
