@@ -16,8 +16,9 @@ min_articles_to_display: 2     # 화면·분석에서 보여 주는 기준. 저�
 daily_gzip: true               # 일일 집계를 날짜.csv.gz 로 저장 (공개 저장소 용량 절약). 예전 날짜.csv 도 읽을 수 있다
 
 # 완전한 날 판정. 이 기준을 하나라도 어기면 '불완전한 날'로 표시해 기준선과 급증 계산에서 뺀다
-expected_runs_per_day: 12
+expected_runs_per_day: 24       # 참고용 (판정에는 쓰지 않음). 워크플로가 매시간 실행
 min_runs_per_day: 6
+max_gap_hours: 6               # 그날에 걸친 가장 긴 수집 공백이 이보다 길면 gap_long (RSS 에서 밀려난 기사를 놓쳤을 수 있음)
 coverage_min: 0.7              # 정상 수집한 피드 비율(평균)
 volume_drop_ratio: 0.5         # 최근 완전한 날들의 중앙값 대비 기사 수 비율
 baseline_days_required: 21     # 이 일수만큼 완전한 날이 쌓이기 전에는 급증 판정을 하지 않는다

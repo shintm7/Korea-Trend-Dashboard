@@ -337,5 +337,42 @@ class CollectPathTests(unittest.TestCase):
         self.assertIn("삼성전자 양산", by)
 
 
+    def test_max_gap_recorded_and_flagged_through_collect(self):
+        """collect.py 를 시간대별로 여러 번 실행: 가장 긴 수집 공백이 days.csv 에 기록되고 gap_long / gap_unknown 이 붙는다.
+        예전 형식(max_gap_h 열이 없는) days.csv 행은 그대로 보존된다."""
+        env = Env([feed("a-eco")])
+        # 예전 형식의 days.csv (max_gap_h 열 없음)
+        env.data.mkdir(parents=True)
+        (env.data / "days.csv").write_text(
+            "date,stories,politics_dropped,keywords_stored,keywords_below_min,runs,expected_feeds,coverage,"
+            "stale_feed_runs,incomplete,flags\n2026-10-31,1757,46,11277,0,2,62,1.0,0,1,runs_low\n", encoding="utf-8")
+
+        def run(day, hhmm):
+            now = at(day, hhmm)
+            write_feed(env.fx, "a-eco", [(f"편의점 디저트 신상 출시 {day} {hhmm}", now - 600)])
+            env.collect(f"{day}T{hhmm}:00+09:00")
+
+        run("2026-11-01", "12:00")                              # 공백 기록 시작 (11/1 은 0시부터 알 수 없음)
+        run("2026-11-01", "23:30")
+        run("2026-11-02", "01:00")
+        run("2026-11-02", "10:00")                              # 01:00 → 10:00 = 9시간 공백
+        run("2026-11-02", "17:00")
+        run("2026-11-02", "23:00")
+        run("2026-11-03", "00:30")                              # 11/1 확정
+        run("2026-11-04", "01:00")                              # 11/2 확정
+
+        days = {d["date"]: d for d in quality.read_days(env.data / "days.csv")}
+        header = (env.data / "days.csv").read_text(encoding="utf-8").splitlines()[0]
+        self.assertIn("max_gap_h", header)
+        self.assertEqual(days["2026-10-31"]["flags"], "runs_low")                  # 예전 행은 그대로
+        self.assertEqual(days["2026-10-31"]["stories"], "1757")
+        self.assertEqual(days["2026-10-31"]["max_gap_h"], "")
+        self.assertEqual(days["2026-11-01"]["max_gap_h"], "")                      # 기록 시작 전의 날
+        self.assertIn("gap_unknown", days["2026-11-01"]["flags"])
+        self.assertEqual(days["2026-11-02"]["max_gap_h"], "9.0")
+        self.assertIn("gap_long", days["2026-11-02"]["flags"])
+        self.assertEqual(days["2026-11-02"]["incomplete"], "1")
+
+
 if __name__ == "__main__":
     unittest.main()

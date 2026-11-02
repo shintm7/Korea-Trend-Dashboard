@@ -10,6 +10,8 @@ test_304_through_real_http_path_and_exit_code (test_e2e_collect.CollectPathTests
 test_daily_gz_written_by_collect_and_finalized_day_not_overwritten (test_e2e_collect.CollectPathTests.test_daily_gz_written_by_collect_and_finalized_day_not_overwritten) ... ok
 test_entities_ellipsis_and_labels_through_collect (test_e2e_collect.CollectPathTests.test_entities_ellipsis_and_labels_through_collect)
 수집 → 확정 → 일일 파일까지: HTML 잔재·꼬리표가 키워드로 저장되지 않고, 말줄임표 뒤 조합이 만들어지지 않는다. ... ok
+test_max_gap_recorded_and_flagged_through_collect (test_e2e_collect.CollectPathTests.test_max_gap_recorded_and_flagged_through_collect)
+collect.py 를 시간대별로 여러 번 실행: 가장 긴 수집 공백이 days.csv 에 기록되고 gap_long / gap_unknown 이 붙는다. ... ok
 test_naive_kst_feed_and_stale_log_detail_through_collect (test_e2e_collect.CollectPathTests.test_naive_kst_feed_and_stale_log_detail_through_collect)
 시간대 없는 한국 시각 피드(naive_kst: true)를 collect.py 로 읽고, 정지 로그에 상태·경과 시간이 나온다. ... ok
 test_newest_ts_survives_an_undated_200_then_304_goes_stale (test_e2e_collect.CollectPathTests.test_newest_ts_survives_an_undated_200_then_304_goes_stale)
@@ -34,6 +36,16 @@ test_normal (test_feeds.ParseTests.test_normal) ... ok
 test_single_future_item_is_not_shifted (test_feeds.ParseTests.test_single_future_item_is_not_shifted) ... ok
 test_stale_feed_flagged (test_feeds.ParseTests.test_stale_feed_flagged) ... ok
 test_truncated_xml_still_reads_items (test_feeds.ParseTests.test_truncated_xml_still_reads_items) ... ok
+test_gap_long_only_above_threshold (test_gap.FlagTests.test_gap_long_only_above_threshold) ... ok
+test_gap_unknown_when_recording_started_late (test_gap.FlagTests.test_gap_unknown_when_recording_started_late) ... ok
+test_old_meta_without_the_field_is_unaffected (test_gap.FlagTests.test_old_meta_without_the_field_is_unaffected) ... ok
+test_gap_across_midnight_counts_for_both_days (test_gap.MaxGapTests.test_gap_across_midnight_counts_for_both_days) ... ok
+test_long_gap_inside_the_day (test_gap.MaxGapTests.test_long_gap_inside_the_day) ... ok
+test_no_earlier_run_counts_from_midnight (test_gap.MaxGapTests.test_no_earlier_run_counts_from_midnight) ... ok
+test_no_runs_at_all_is_a_full_day_gap (test_gap.MaxGapTests.test_no_runs_at_all_is_a_full_day_gap) ... ok
+test_regular_hourly (test_gap.MaxGapTests.test_regular_hourly) ... ok
+test_finalized_day_gets_gap_or_unknown (test_gap.PipelineGapTests.test_finalized_day_gets_gap_or_unknown) ... ok
+test_run_times_recorded_and_pruned_after_five_days (test_gap.PipelineGapTests.test_run_times_recorded_and_pruned_after_five_days) ... ok
 test_block_page_is_parse_error (test_http.HttpTests.test_block_page_is_parse_error) ... ok
 test_connection_refused_is_network_error (test_http.HttpTests.test_connection_refused_is_network_error) ... ok
 test_http_errors (test_http.HttpTests.test_http_errors) ... ok
@@ -66,6 +78,6 @@ test_undated_items_are_not_recounted_on_later_days (test_pipeline.PipelineTests.
 test_volume_drop_flagged (test_pipeline.PipelineTests.test_volume_drop_flagged) ... ok
 
 ----------------------------------------------------------------------
-Ran 62 tests in 49.533s
+Ran 73 tests in 65.724s
 
 OK

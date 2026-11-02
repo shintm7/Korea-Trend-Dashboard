@@ -19,7 +19,7 @@ def main() -> int:
     for r in read_days(days)[-14:]:
         mark = "불완전 " + r["flags"] if str(r["incomplete"]) == "1" else "완전"
         print(f"  {r['date']}  기사 {r['stories']:>5}  키워드 {r['keywords_stored']:>5}  "
-              f"수집률 {r['coverage']}  {mark}")
+              f"수집률 {r['coverage']}  최대공백 {r.get('max_gap_h') or '-'}h  {mark}")
     return 0
 
 

@@ -6,11 +6,35 @@ incomplete=1 로 표시하고 기준선·급증 계산에서 제외한다.
 from __future__ import annotations
 
 import csv
+import datetime as dt
 import statistics
 from pathlib import Path
 
 DAY_FIELDS = ["date", "stories", "politics_dropped", "keywords_stored", "keywords_below_min",
-              "runs", "expected_feeds", "coverage", "stale_feed_runs", "incomplete", "flags"]
+              "runs", "expected_feeds", "coverage", "stale_feed_runs", "max_gap_h", "incomplete", "flags"]
+
+
+_KST = dt.timezone(dt.timedelta(hours=9))
+
+
+def day_start_ts(day: str) -> float:
+    return dt.datetime.fromisoformat(f"{day}T00:00:00+09:00").timestamp()
+
+
+def max_gap_hours(run_ts: list, day: str) -> float:
+    """그날에 걸친 가장 긴 수집 공백(시간). 하루 실행 횟수가 충분해도 한 번에 길게 비면 그 사이 RSS 에서 밀려난 기사를 놓친다.
+
+    직전 날의 마지막 실행부터 다음 날의 첫 실행까지 이어서 본다 (자정을 넘는 공백도 센다).
+    앞쪽에 실행 기록이 없으면 그날 0시를 시작으로, 뒤쪽에 없으면 24시를 끝으로 본다 (기록 없음 = 수집하지 못한 시간).
+    """
+    start = day_start_ts(day)
+    end = start + 86400
+    ts = sorted(set(float(t) for t in run_ts))
+    before = [t for t in ts if t < start]
+    inside = [t for t in ts if start <= t < end]
+    after = [t for t in ts if t >= end]
+    seq = [max(before) if before else start] + inside + [min(after) if after else end]
+    return max(b - a for a, b in zip(seq, seq[1:])) / 3600
 
 
 def read_days(path: str | Path) -> list[dict]:
@@ -44,6 +68,12 @@ def evaluate_day(meta: dict, history: list[dict], cfg: dict) -> list[str]:
         flags.append("state_reset")
     if meta["runs"] < cfg["min_runs_per_day"]:
         flags.append("runs_low")
+    if "max_gap_h" in meta and meta.get("runs", 0) > 0:
+        gap = meta["max_gap_h"]
+        if gap == "":
+            flags.append("gap_unknown")          # 공백 기록이 시작되기 전의 날: 공백이 길었는지 알 수 없어 기준선에서 뺀다
+        elif float(gap) > cfg.get("max_gap_hours", 6):
+            flags.append("gap_long")
     if meta["coverage"] < cfg["coverage_min"]:
         flags.append("coverage_low")
     recent = [int(r["stories"]) for r in history if r["incomplete"] in ("0", 0, "")

@@ -30,6 +30,11 @@ def run_once(cfg: dict, feeds: list[Feed], fetcher, state: dict, now: float, rul
     st = _day_stats(state, today)
     if reset:
         st["reset"] = True
+    # 실행 시각을 기록해 날마다 가장 긴 수집 공백을 계산한다 (확정은 이틀 뒤라 5일치를 보관)
+    state["meta"].setdefault("run_ts_start", now)      # 공백 기록을 시작한 시각 (그 전의 날은 공백을 알 수 없다)
+    run_ts = [t for t in state["meta"].get("run_ts", []) if now - t <= 5 * 86400]
+    run_ts.append(now)
+    state["meta"]["run_ts"] = run_ts
 
     enabled = [f for f in feeds if f.enabled]
     feed_by_id = {f.id: f for f in enabled}
@@ -205,12 +210,17 @@ def write_day(day: str, state: dict, cfg: dict, data_dir: Path, log=print) -> li
                    ["feed_id", "runs", "ok_runs", "stale_runs", "items_new", "last_status", "last_error"], feed_rows)
         written.append(f"health/{day}.csv")
         runs, reset, stale_runs = stats["runs"], stats["reset"], stats["stale_runs"]
+        started = state["meta"].get("run_ts_start")
+        known = started is not None and started <= quality.day_start_ts(day)
+        max_gap = round(quality.max_gap_hours(state["meta"].get("run_ts", []), day), 1) if known else ""
     else:
         coverage, expected_feeds, runs, reset, stale_runs = 0.0, 0, 0, False, 0
+        max_gap = ""
 
     meta = {"date": day, "stories": len(news), "politics_dropped": len(stories) - len(news),
             "keywords_stored": len(rows), "keywords_below_min": below, "runs": runs,
-            "expected_feeds": expected_feeds, "coverage": coverage, "stale_feed_runs": stale_runs, "reset": reset}
+            "expected_feeds": expected_feeds, "coverage": coverage, "stale_feed_runs": stale_runs, "max_gap_h": max_gap,
+            "reset": reset}
     days_csv = data_dir / "days.csv"
     flags = quality.evaluate_day(meta, quality.read_days(days_csv), cfg)
     meta["incomplete"] = 1 if flags else 0

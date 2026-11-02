@@ -11,7 +11,7 @@ config/settings.yaml     수집 주기·임계값·완전한 날 기준
 config/stopwords.txt     트렌드 신호가 못 되는 일반 단어
 config/politics_terms.txt 정치 헤드라인 제외용 단어
 radar/                   수집·추출·집계·품질 판정 코드 (store.py: 일일 파일 읽기·쓰기, 최초 등장일)
-scripts/collect.py       수집 1회 (Actions가 2시간마다 실행)
+scripts/collect.py       수집 1회 (Actions가 매시간 실행)
 scripts/probe_feeds.py   모든 피드의 접근 가능 여부 점검 (수동 실행)
 scripts/status.py        수집 현황과 급증 판정 가능 여부
 scripts/simulate.py      오프라인 5일 시뮬레이션
@@ -33,13 +33,13 @@ logs/                    테스트 결과(test-results.txt)와 시뮬레이션 �
 2. Settings → Actions → General → Workflow permissions 를 **Read and write** 로 설정합니다.
 3. Actions 탭 → **Probe RSS feeds** → Run workflow. 결과 표(실행 요약)와 `probe-report` 아티팩트가 나옵니다.
    `실패`·`정지 의심` 피드는 `config/feeds.yaml` 에서 `enabled: false` 로 바꿉니다.
-4. Actions 탭 → **Collect news keywords** → Run workflow 로 첫 수집을 확인합니다. 이후 2시간마다 자동 실행됩니다.
+4. Actions 탭 → **Collect news keywords** → Run workflow 로 첫 수집을 확인합니다. 이후 매시간 자동 실행됩니다.
 
 ## 동작 방식
 
 - **날짜 없는 피드**: 한겨레·세계일보 피드는 기사 시각이 없다. 처음 본 제목 해시를 7일간 기억해 이튿날 다시 세지 않는다.
 - **시간대 표기 없는 피드**: 한국 시각을 시간대 없이 적는 피드(프레시안·시사저널·통일뉴스·일다)는 UTC 로 읽혀 9시간 앞선다. `feeds.yaml` 에 `naive_kst: true` 로 표시한 피드는 항상 9시간을 되돌린다. 표시가 없는 피드는 최근 기사의 25% 이상이 미래일 때만 자동으로 되돌린다(안전망). 새 피드를 추가할 때 probe 의 "최신기사(시간 전)"가 음수로 나오면 이 표시를 붙인다.
-- **수집 주기**: 2시간마다. RSS는 최근 기사 수십 건만 보여 주고, 연예 피드는 3시간 분량뿐이라 하루 한 번으로는 놓칩니다.
+- **수집 주기**: 매시간(`17 * * * *`). GitHub 예약 실행은 지연·누락되어 2시간 설정에서도 4~7시간 간격이 관찰됐기 때문에 촘촘하게 잡았다. 실제 간격은 `days.csv` 의 `max_gap_h` 로 확인한다. RSS는 최근 기사 수십 건만 보여 주고, 연예 피드는 3시간 분량뿐이라 하루 한 번으로는 놓칩니다.
 - **중복 제거**: 정규화한 제목의 해시로 같은 기사를 한 건으로 셉니다(통신 기사가 여러 매체에 실려도 1건). 매체 수(`outlets`)는 따로 셉니다.
 - **키워드**: 어절 안에서 이어진 명사 묶음과 구성 명사, 그리고 이어진 2~3어절의 명사 묶음. 쉼표·말줄임표(`…`, `...`)를 건너뛰는 조합은 만들지 않습니다. 이중 이스케이프된 HTML 엔티티(`&amp;hellip;` 등)는 풀어서 `hellip` 같은 토큰이 생기지 않게 하고, 중복 제거용 해시는 이 정리를 거치지 않습니다.
 - **정치 제외**: 정치 분야 피드는 목록에서 뺐고, 다른 분야에 섞인 정치 헤드라인은 `politics_terms.txt` 로 한 번 더 거릅니다. 거른 건수는 `days.csv` 에 남습니다.
@@ -68,6 +68,8 @@ logs/                    테스트 결과(test-results.txt)와 시뮬레이션 �
 | `runs_low` | 하루 6회 미만 실행 (예약 실행 누락) |
 | `volume_low` | 기사 수가 최근 완전한 날들의 중앙값의 절반 미만 |
 | `state_reset` | 캐시 상태가 사라져 새로 시작함 |
+| `gap_long` | 그날에 걸친 가장 긴 수집 공백이 6시간(`max_gap_hours`)을 넘음. 공백 동안 RSS 에서 밀려난 기사를 놓쳤을 수 있음 (`days.csv` 의 `max_gap_h`) |
+| `gap_unknown` | 공백 기록이 시작되기 전의 날(기록 시작 이전, 또는 상태 유실 직후). 공백이 길었는지 알 수 없어 기준선에서 뺌 |
 
 완전한 날이 **21일** 쌓이기 전에는 `scripts/status.py` 가 급증 판정을 "보류"로 표시합니다. robots.txt 가 막은 피드는 장애로 세지 않고 수집에서 제외합니다.
 
