@@ -2,7 +2,7 @@ name: Collect news keywords
 
 on:
   schedule:
-    - cron: "17 */2 * * *"      # 2시간마다 (정각 혼잡을 피해 17분)
+    - cron: "17 * * * *"        # 매시간 (정각 혼잡을 피해 17분). GitHub 예약 실행은 지연·누락되므로 촘촘하게 잡는다
   workflow_dispatch:
 
 permissions:
