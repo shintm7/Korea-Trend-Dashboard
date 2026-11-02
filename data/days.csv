@@ -1,3 +1,4 @@
-date,stories,politics_dropped,keywords_stored,keywords_below_min,runs,expected_feeds,coverage,stale_feed_runs,incomplete,flags
-2026-10-30,33,2,16,385,0,0,0.0,0,1,runs_low|coverage_low
-2026-10-31,1757,46,11277,0,2,62,1.0,0,1,runs_low
+date,stories,politics_dropped,keywords_stored,keywords_below_min,runs,expected_feeds,coverage,stale_feed_runs,max_gap_h,incomplete,flags
+2026-10-30,33,2,16,385,0,0,0.0,0,,1,runs_low|coverage_low
+2026-10-31,1757,46,11277,0,2,62,1.0,0,,1,runs_low
+2026-11-01,2313,58,14233,0,8,62,0.956,18,,1,gap_unknown
