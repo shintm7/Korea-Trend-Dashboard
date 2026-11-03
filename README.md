@@ -33,7 +33,7 @@ logs/                    테스트 결과(test-results.txt)와 시뮬레이션 �
 2. Settings → Actions → General → Workflow permissions 를 **Read and write** 로 설정합니다.
 3. Actions 탭 → **Probe RSS feeds** → Run workflow. 결과 표(실행 요약)와 `probe-report` 아티팩트가 나옵니다.
    `실패`·`정지 의심` 피드는 `config/feeds.yaml` 에서 `enabled: false` 로 바꿉니다.
-4. Actions 탭 → **Collect news keywords** → Run workflow 로 첫 수집을 확인합니다. 이후 매시간 자동 실행됩니다.
+4. Actions 탭 → **Collect news keywords** → Run workflow 로 첫 수집을 확인합니다. 이후 자동 실행됩니다(아래 "예약 실행 구성" 참고).
 
 ## 동작 방식
 
@@ -72,6 +72,28 @@ logs/                    테스트 결과(test-results.txt)와 시뮬레이션 �
 | `gap_unknown` | 공백 기록이 시작되기 전의 날(기록 시작 이전, 또는 상태 유실 직후). 공백이 길었는지 알 수 없어 기준선에서 뺌 |
 
 완전한 날이 **21일** 쌓이기 전에는 `scripts/status.py` 가 급증 판정을 "보류"로 표시합니다. robots.txt 가 막은 피드는 장애로 세지 않고 수집에서 제외합니다.
+
+## 예약 실행 구성
+
+GitHub 의 `schedule`(cron)은 지연·누락될 수 있어(관측: 매시간 설정에도 6시간 공백) **두 개의 트리거**를 함께 씁니다.
+
+| 트리거 | 설정 | 비고 |
+|---|---|---|
+| GitHub schedule | `.github/workflows/collect.yml` 의 `17 * * * *` | 기본. 지연·누락 가능 |
+| 외부 스케줄러 (cron-job.org) | 매시 47분, `workflow_dispatch` 호출 | 보조. 합치면 약 30분 간격 |
+
+두 트리거가 겹쳐도 `concurrency: collect` 와 기사 중복 제거 때문에 데이터는 꼬이지 않습니다.
+
+**외부 스케줄러 설정값** (토큰 값은 저장소에 절대 쓰지 않습니다. 저장소가 public 입니다.)
+
+- URL: `https://api.github.com/repos/Shintm7/Korea-Trend-Dashboard/actions/workflows/collect.yml/dispatches`
+- Method: `POST`, Body: `{"ref":"main"}`
+- Headers: `Authorization: Bearer <토큰>`, `Accept: application/vnd.github+json`, `X-GitHub-Api-Version: 2022-11-28`, `Content-Type: application/json`
+- 정상 응답: HTTP **204**
+- 토큰: fine-grained PAT, 이 저장소만, 권한 Actions **Read and write**(Metadata read 자동). 만료일이 지나면 외부 호출이 401 로 실패하므로 만료 전에 새로 발급해 cron-job.org 에서 교체합니다.
+- API 버전 `2022-11-28` 은 GitHub 안내상 2028-03-10 종료 예정입니다. 그 전에 새 버전 값으로 교체합니다.
+
+**확인 방법**: Actions 목록에서 Event 가 `workflow_dispatch`(외부)·`schedule`(GitHub)인 실행이 번갈아 생기는지 봅니다. 외부 호출이 멈추면 `days.csv` 의 `max_gap_h` 와 `gap_long` 으로 드러납니다.
 
 ## 이용 조건 관련
 
