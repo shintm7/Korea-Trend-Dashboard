@@ -1,0 +1,90 @@
+﻿publisher,group,url,scope,items_reported,status_vs_current
+경향신문,종합일간지,https://www.khan.co.kr/rss/rssdata/total_news.xml,전체,50,현재 활성
+국민일보,종합일간지,https://www.kmib.co.kr/rss/data/kmibRssAll.xml,전체,30,신규
+동아일보,종합일간지,https://rss.donga.com/total.xml,전체,50,현재 활성
+서울신문,종합일간지,https://www.seoul.co.kr/xml/rss/google_plan.xml,전체,40,현재 활성
+세계일보,종합일간지,http://www.segye.com/Articles/RSSList/segye_recent.xml,전체,20,현재 활성
+조선일보,종합일간지,https://www.chosun.com/arc/outboundfeeds/rss/?outputType=xml,전체,100,현재 활성
+한겨레,종합일간지,https://www.hani.co.kr/rss/,전체,30,현재 활성
+EBN,경제지,https://cdn.ebn.co.kr/rss/gns_allArticle.xml,전체,50,신규
+매일경제,경제지,https://www.mk.co.kr/rss/30000001/,섹션,50,현재 활성
+머니투데이,경제지,http://rss.mt.co.kr/mt_news.xml,전체,100,신규
+메트로,경제지,https://www.metroseoul.co.kr/news/rss,전체,50,신규
+브릿지경제,경제지,https://www.viva100.com/rssAll.xml,전체,50,신규
+서울경제,경제지,https://www.sedaily.com/rss/newsall,전체,50,신규
+서울파이낸스,경제지,https://cdn.seoulfn.com/rss/gn_rss_allArticle.xml,전체,50,신규
+아시아경제,경제지,https://view.asiae.co.kr/rss/all.htm,전체,100,신규
+아주경제,경제지,https://www.ajunews.com/rss/sokbo.xml,전체,802,신규
+이데일리,경제지,http://rss.edaily.co.kr/edaily_news.xml,전체,50,신규
+이투데이,경제지,https://rss.etoday.co.kr/eto/etoday_news_all.xml,전체,231,신규
+조선비즈,경제지,https://biz.chosun.com/arc/outboundfeeds/rss/?outputType=xml,전체,100,신규
+조세일보,경제지,https://www.joseilbo.com/Contents/rss/rss_total.php,전체,20,신규
+파이낸셜뉴스,경제지,https://www.fnnews.com/rss/r20/fn_realnews_all.xml,전체,372,신규
+프라임경제,경제지,https://www.newsprime.co.kr/data/rss/news.xml,전체,25,신규
+한국경제,경제지,https://www.hankyung.com/feed/all-news,전체,50,현재 활성
+헤럴드경제,경제지,https://biz.heraldcorp.com/rss/google/newsAll,전체,300,신규
+IT동아,IT·과학·전문,https://it.donga.com/feeds/rss/,전체,100,신규
+바이라인네트워크,IT·과학·전문,https://byline.network/feed/,전체,20,신규
+보안뉴스,IT·과학·전문,https://www.boannews.com/media/news_rss.xml,전체,10,신규
+블로터,IT·과학·전문,https://cdn.bloter.net/rss/gns_allArticle.xml,전체,50,신규
+아이뉴스24,IT·과학·전문,https://www.inews24.com/rss/news_all.xml,전체,100,신규
+전자신문,IT·과학·전문,https://rss.etnews.com/Section901.xml,섹션,30,현재 활성
+지디넷코리아,IT·과학·전문,https://feeds.feedburner.com/zdkorea,전체,30,신규
+코메디닷컴,IT·과학·전문,https://kormedi.com/feed/,전체,10,신규
+테크M,IT·과학·전문,https://www.techm.kr/rss/allArticle.xml,전체,50,신규
+뉴시스,통신사,https://www.newsis.com/RSS/sokbo.xml,섹션,100,현재 활성
+연합뉴스,통신사,https://www.yna.co.kr/rss/news.xml,전체,120,현재 활성
+JTBC,방송,https://fs.jtbc.co.kr/RSS/newsflash.xml,섹션,20,신규
+MBN,방송,https://www.mbn.co.kr/rss/politics/,섹션,30,신규
+SBS,방송,https://news.sbs.co.kr/news/newsflashRssFeed.do,섹션,101,신규
+TV조선,방송,https://news.tvchosun.com/site/data/rss/rss.xml,전체,50,신규
+연합뉴스TV,방송,https://www.yonhapnewstv.co.kr/browse/feed/,전체,11,신규
+노컷뉴스,인터넷·시사,https://rss.nocutnews.co.kr/news/news.xml,전체,50,신규
+데일리NK,인터넷·시사,https://www.dailynk.com/feed/,전체,10,신규
+미디어오늘,인터넷·시사,http://www.mediatoday.co.kr/rss/allArticle.xml,전체,50,등록 후 비활성
+시사IN,인터넷·시사,https://www.sisain.co.kr/rss/allArticle.xml,전체,50,등록 후 비활성
+시사저널,인터넷·시사,https://www.sisajournal.com/rss/allArticle.xml,전체,50,현재 활성
+오마이뉴스,인터넷·시사,http://rss.ohmynews.com/rss/ohmynews.xml,전체,20,신규
+주간경향,인터넷·시사,https://weekly.khan.co.kr/rss/rssdata/world_news.xml,섹션,50,신규
+폴리뉴스,인터넷·시사,https://www.polinews.co.kr/rss/allArticle.xml,전체,50,신규
+프레시안,인터넷·시사,https://www.pressian.com/api/v3/site/rss/news,전체,25,현재 활성
+한겨레21,인터넷·시사,https://h21.hani.co.kr/rss/,전체,30,신규
+금융소비자뉴스,금융·보험,https://www.newsfc.co.kr/rss/allArticle.xml,전체,50,신규
+대한금융신문,금융·보험,https://www.kbanker.co.kr/rss/allArticle.xml,전체,50,신규
+보험매일,금융·보험,https://www.fins.co.kr/rss/allArticle.xml,전체,50,신규
+보험저널,금융·보험,https://www.insjournal.co.kr/rss/allArticle.xml,전체,50,신규
+파이낸셜투데이,금융·보험,https://www.ftoday.co.kr/rss/allArticle.xml,전체,50,신규
+한국보험신문,금융·보험,https://www.insnews.co.kr/rss/allArticle.xml,전체,50,신규
+라포르시안,의약·바이오,https://www.rapportian.com/rss/allArticle.xml,전체,50,신규
+의협신문,의약·바이오,https://www.doctorsnews.co.kr/rss/allArticle.xml,전체,50,신규
+청년의사,의약·바이오,https://www.docdocdoc.co.kr/rss/allArticle.xml,전체,50,신규
+팜뉴스,의약·바이오,https://www.pharmnews.com/rss/allArticle.xml,전체,50,신규
+히트뉴스,의약·바이오,https://www.hitnews.co.kr/rss/allArticle.xml,전체,50,신규
+그린포스트코리아,건설·부동산·에너지,https://www.greenpostkorea.co.kr/rss/allArticle.xml,전체,50,신규
+대한전문건설신문,건설·부동산·에너지,https://www.koscaj.com/rss/allArticle.xml,전체,50,신규
+이투뉴스,건설·부동산·에너지,https://www.e2news.com/rss/allArticle.xml,전체,50,신규
+투데이에너지,건설·부동산·에너지,https://www.todayenergy.kr/rss/allArticle.xml,전체,50,신규
+하우징헤럴드,건설·부동산·에너지,https://www.housingherald.co.kr/rss/allArticle.xml,전체,50,신규
+모터그래프,자동차,https://www.motorgraph.com/rss/allArticle.xml,전체,50,신규
+오토헤럴드,자동차,https://www.autoherald.co.kr/rss/allArticle.xml,전체,50,신규
+매일노동뉴스,교육·법률·노동,https://www.labortoday.co.kr/rss/allArticle.xml,전체,50,등록 후 비활성
+법률신문,교육·법률·노동,https://cdn.lawtimes.co.kr/rss/gn_rss_allArticle.xml,전체,50,신규
+베리타스알파,교육·법률·노동,https://www.veritas-a.com/rss/allArticle.xml,전체,50,신규
+한국교육신문,교육·법률·노동,https://www.hangyo.com/data/rss/news.xml,전체,25,신규
+농수축산신문,농업·환경,https://www.aflnews.co.kr/rss/allArticle.xml,전체,50,신규
+한국농정신문,농업·환경,https://www.ikpnews.net/rss/allArticle.xml,전체,50,신규
+OSEN,스포츠·연예,https://rss.mt.co.kr/osen_news.xml,전체,49,신규
+스포츠조선,스포츠·연예,https://www.sportschosun.com/rss/index_all.htm,전체,100,신규
+일간스포츠,스포츠·연예,https://isplus.com/rss,전체,100,신규
+텐아시아,스포츠·연예,https://www.tenasia.co.kr/rss/music/,섹션,50,신규
+강원도민일보,지역지,https://www.kado.net/rss/allArticle.xml,전체,50,신규
+경남도민일보,지역지,https://www.idomin.com/rss/allArticle.xml,전체,50,신규
+대전일보,지역지,https://www.daejonilbo.com/rss/allArticle.xml,전체,50,신규
+인천일보,지역지,https://www.incheonilbo.com/rss/allArticle.xml,전체,50,신규
+전남일보,지역지,https://cdn.jnilbo.com/rss/gn_rss_allArticle.xml,전체,50,신규
+전북일보,지역지,https://www.jjan.kr/news/rssAll,전체,50,신규
+제주일보,지역지,https://www.jejunews.com/rss/allArticle.xml,전체,50,신규
+충청투데이,지역지,https://www.cctoday.co.kr/rss/allArticle.xml,전체,50,신규
+한라일보,지역지,https://www.ihalla.com/rss.php?section=73,섹션,30,신규
+The Korea Herald,영자지,https://www.koreaherald.com/rss/newsAll,전체,50,신규
+The Korea Times,영자지,https://feed.koreatimes.co.kr/k/allnews.xml,전체,65,신규
