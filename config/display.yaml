@@ -1,0 +1,20 @@
+# 화면 표시 규칙. 저장 데이터(data/daily)와 수집·집계·품질 판정에는 쓰이지 않는다 (radar/display.py 에서만 읽는다).
+# 규칙을 바꾸면 version 을 올린다. 저장 데이터는 소급 변경되지 않으므로 과거와 새 규칙을 언제든 다시 비교할 수 있다.
+version: 1
+
+# 포함 관계 묶기: 두 단어 이상 키워드가 구성 단어 하나와 기사 수가 같을 때만 한 그룹으로 보여 준다.
+# 그룹은 화면에서만 존재한다. 원본 키워드와 시계열은 합치거나 대체하지 않는다.
+nesting:
+  enabled: true
+
+# 단일 매체 템플릿: 제외하지 않고 순위 점수만 낮춘다.
+single_outlet:
+  enabled: true
+  max_outlets: 1
+  min_articles: 8
+  score_factor: 0.25
+
+# 장소 뒤 '서' 정규화: places_file 의 장소 이름 뒤에 붙은 '서'만 표시용으로 뗀다. 목록에 없으면 건드리지 않는다.
+place_suffix:
+  enabled: true
+  places_file: places.txt

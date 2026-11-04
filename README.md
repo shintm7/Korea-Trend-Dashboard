@@ -10,10 +10,14 @@ config/feeds.yaml        피드 목록 (62개 활성, 14개 매체, 정치·오�
 config/settings.yaml     수집 주기·임계값·완전한 날 기준
 config/stopwords.txt     트렌드 신호가 못 되는 일반 단어
 config/politics_terms.txt 정치 헤드라인 제외용 단어
+config/display.yaml      화면 표시 규칙(포함 관계 묶기, 단일 매체 순위 하향, 장소 뒤 '서'). 저장·집계에는 쓰이지 않는다
+config/places.txt        '서' 정규화 허용 장소 목록
 radar/                   수집·추출·집계·품질 판정 코드 (store.py: 일일 파일 읽기·쓰기, 최초 등장일)
+radar/display.py         화면 표시 계층 (읽기 전용. 수집·품질 코드는 이 모듈을 가져오지 않는다)
 scripts/collect.py       수집 1회 (Actions가 매시간 실행)
 scripts/probe_feeds.py   모든 피드의 접근 가능 여부 점검 (수동 실행)
 scripts/status.py        수집 현황과 급증 판정 가능 여부
+scripts/preview.py       표시 계층 미리보기 (읽기 전용)
 scripts/simulate.py      오프라인 5일 시뮬레이션
 data/daily/날짜.csv.gz   키워드별 일일 집계 (장기 보관, gzip)   keyword,n,articles,outlets  (예전 날짜.csv 도 읽힘)
 data/days.csv            날짜별 품질 기록 (완전한 날 판정)
@@ -94,6 +98,16 @@ GitHub 의 `schedule`(cron)은 지연·누락될 수 있어(관측: 매시간 �
 - API 버전 `2022-11-28` 은 GitHub 안내상 2028-03-10 종료 예정입니다. 그 전에 새 버전 값으로 교체합니다.
 
 **확인 방법**: Actions 목록에서 Event 가 `workflow_dispatch`(외부)·`schedule`(GitHub)인 실행이 번갈아 생기는지 봅니다. 외부 호출이 멈추면 `days.csv` 의 `max_gap_h` 와 `gap_long` 으로 드러납니다.
+
+## 표시 계층 (원본과 분리)
+
+원본(`data/daily`)은 그대로 두고, 화면에 보이는 방식만 `radar/display.py` 가 읽을 때 정리합니다. 규칙은 `config/display.yaml`(버전 기록)에 있습니다.
+
+- **포함 관계 그룹**: 구절 키워드가 구성 단어와 기사 수가 *같을 때만* 한 줄로 보여 줍니다(대표어는 긴 구절). 원본 키워드의 시계열은 합치거나 짧은 키워드로 대체하지 않습니다. 그룹의 기사 수는 구성 키워드 중 최댓값이고(합 아님), `member_series()` 로 키워드별 추이를 따로 읽습니다.
+- **단일 매체 템플릿**(매체 1곳, 기사 8건 이상): 제외하지 않고 순위 점수만 0.25배로 낮춥니다.
+- **장소 뒤 `서`**: `config/places.txt` 의 장소 이름 뒤에 붙은 경우만 표시용으로 뗍니다(`뉴욕서`→`뉴욕`). 보고서·청구서 같은 단어는 건드리지 않습니다.
+
+급증 판정·품질 판정·장기 분석은 이 계층을 쓰지 않고 원본 집계를 직접 읽습니다(테스트로 보장). `python scripts/preview.py --day 날짜` 로 결과를 볼 수 있습니다.
 
 ## 이용 조건 관련
 

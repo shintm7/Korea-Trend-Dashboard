@@ -1,10 +1,28 @@
-# python3.12.3 -W error::ResourceWarning python -m unittest discover -s tests -v
+# python3.13.18 -W error::ResourceWarning python -m unittest discover -s tests -v
 test_apply_alias_map_sums_counts (test_alias.AliasTests.test_apply_alias_map_sums_counts) ... ok
 test_initials_detected (test_alias.AliasTests.test_initials_detected) ... ok
 test_initials_need_evidence (test_alias.AliasTests.test_initials_need_evidence) ... ok
 test_no_merge_for_single_form (test_alias.AliasTests.test_no_merge_for_single_form) ... ok
 test_space_and_case_merge_with_stable_registry (test_alias.AliasTests.test_space_and_case_merge_with_stable_registry) ... ok
 test_baseline_needs_21_complete_days (test_alias.BaselineTests.test_baseline_needs_21_complete_days) ... ok
+test_equal_counts_group_with_longest_as_label (test_display.GroupTests.test_equal_counts_group_with_longest_as_label) ... ok
+test_group_never_replaces_or_merges_member_counts (test_display.GroupTests.test_group_never_replaces_or_merges_member_counts) ... ok
+test_input_rows_not_mutated (test_display.GroupTests.test_input_rows_not_mutated) ... ok
+test_min_articles_applied_at_view_time (test_display.GroupTests.test_min_articles_applied_at_view_time) ... ok
+test_near_equal_and_distinct_are_not_grouped (test_display.GroupTests.test_near_equal_and_distinct_are_not_grouped) ... ok
+test_phrase_joins_one_group_only (test_display.GroupTests.test_phrase_joins_one_group_only) ... ok
+test_place_label_merge_keeps_both_raw_keywords_without_summing (test_display.GroupTests.test_place_label_merge_keeps_both_raw_keywords_without_summing) ... ok
+test_display_never_changes_stored_files (test_display.IsolationAndRegressionTests.test_display_never_changes_stored_files) ... ok
+test_member_series_does_not_substitute_the_short_keyword (test_display.IsolationAndRegressionTests.test_member_series_does_not_substitute_the_short_keyword) ... ok
+test_member_series_keeps_each_keyword_series (test_display.IsolationAndRegressionTests.test_member_series_keeps_each_keyword_series) ... ok
+test_pipeline_and_analysis_modules_do_not_import_display (test_display.IsolationAndRegressionTests.test_pipeline_and_analysis_modules_do_not_import_display) ... ok
+test_stored_rows_identical_with_and_without_display (test_display.IsolationAndRegressionTests.test_stored_rows_identical_with_and_without_display) ... ok
+test_keeps_words_where_seo_is_part_of_the_word (test_display.PlaceTests.test_keeps_words_where_seo_is_part_of_the_word) ... ok
+test_shipped_allowlist_excludes_common_nouns (test_display.PlaceTests.test_shipped_allowlist_excludes_common_nouns) ... ok
+test_single_char_and_bare_seo (test_display.PlaceTests.test_single_char_and_bare_seo) ... ok
+test_strips_only_allowlisted_place (test_display.PlaceTests.test_strips_only_allowlisted_place) ... ok
+test_below_threshold_not_flagged (test_display.SingleOutletTests.test_below_threshold_not_flagged) ... ok
+test_demoted_not_removed (test_display.SingleOutletTests.test_demoted_not_removed) ... ok
 test_304_freshness_through_collect_with_fixtures (test_e2e_collect.CollectPathTests.test_304_freshness_through_collect_with_fixtures) ... ok
 test_304_through_real_http_path_and_exit_code (test_e2e_collect.CollectPathTests.test_304_through_real_http_path_and_exit_code) ... ok
 test_daily_gz_written_by_collect_and_finalized_day_not_overwritten (test_e2e_collect.CollectPathTests.test_daily_gz_written_by_collect_and_finalized_day_not_overwritten) ... ok
@@ -76,8 +94,6 @@ test_state_reset_flag (test_pipeline.PipelineTests.test_state_reset_flag) ... ok
 test_store_threshold_still_configurable (test_pipeline.PipelineTests.test_store_threshold_still_configurable) ... ok
 test_undated_items_are_not_recounted_on_later_days (test_pipeline.PipelineTests.test_undated_items_are_not_recounted_on_later_days) ... ok
 test_volume_drop_flagged (test_pipeline.PipelineTests.test_volume_drop_flagged) ... ok
-
 ----------------------------------------------------------------------
-Ran 73 tests in 65.724s
-
+Ran 91 tests in 56.552s
 OK
