@@ -3,3 +3,4 @@ date,stories,politics_dropped,keywords_stored,keywords_below_min,runs,expected_f
 2026-10-31,1757,46,11277,0,2,62,1.0,0,,1,runs_low
 2026-11-01,2313,58,14233,0,8,62,0.956,18,,1,gap_unknown
 2026-11-02,3201,115,20270,0,5,62,0.971,5,,1,runs_low|gap_unknown
+2026-11-03,3605,134,21216,0,8,62,0.974,8,10.1,1,gap_long
