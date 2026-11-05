@@ -1,0 +1,52 @@
+# RSS 출처 감사 설정. radar/audit.py 와 scripts/audit_feeds.py 에서만 읽는다. 수집·집계에는 쓰이지 않는다.
+# 감사는 읽기 전용이다: feeds.yaml 을 바꾸지 않고, 신규 후보를 수집 대상에 넣지 않고, data/ 를 건드리지 않는다.
+
+candidate_statuses: ["신규", "등록 후 비활성"]   # config/feeds_candidates.csv 의 status_vs_current 중 측정할 값 ("현재 활성" 은 이미 측정 대상)
+
+# 기사 중복 판정: 정규화 제목 해시가 같으면 '같은 기사', 아니면 고유 단어 집합이 충분히 겹치면 '같은 사건(근사 중복)'
+near_dup:
+  min_shared_tokens: 3          # 공유 단어 수 하한
+  min_jaccard: 0.4              # 단어 집합 자카드 하한
+  common_token_share: 0.05      # 전체 기사의 이 비율 이상에 나오는 흔한 단어는 후보 탐색에서 제외 (자카드 계산에는 포함)
+
+# 판정 기준
+thresholds:
+  min_items_window: 8           # 측정 구간 안의 기사가 이보다 적으면 '보류 (기사 드묾)'
+  fresh_hours: 24               # 최신 기사가 이 안이면 신선
+  stale_exclude_hours: 72       # 이보다 오래되면 '제외 (정지)'. fresh_hours~이 값 사이는 '보류 (발행 드묾)'
+  min_hangul_ratio: 0.5         # 제목 글자 중 한글 비율. 미만이면 추출기가 한국어용이라 '제외 (비한국어)'
+  max_political_share: 0.5      # 정치로 걸러지는 기사 비율이 이 이상이면 '제외 (정치 위주)'
+  max_dup_near: 0.7             # 현재 피드와의 중복률(근사 포함)이 이 이상이면 '제외 (중복)'
+  min_marginal_gain: 10         # 탐욕 순위에서 이미 선택된 피드까지 반영한 순수 신규 기사 수가 이보다 적으면 '보류 (신규 기여 낮음)'
+
+# 분야 분포는 피드가 선언한 분야(현재: feeds.yaml section 의 첫 값, 후보: 목록의 분류) 기준이다. 종합 피드는 여러 주제를 담으므로 한계가 있다.
+categories:
+  current_section:
+    economy: 경제
+    society: 사회
+    international: 국제
+    culture: 문화
+    sports: 스포츠
+    entertainment: 연예
+    _all_: 종합
+    tech: IT·과학
+    science: IT·과학
+    medical: 건강·의약
+    health: 건강·의약
+    people: 사회
+  candidate_group:
+    종합일간지: 종합
+    경제지: 경제
+    IT·과학·전문: IT·과학
+    통신사: 종합
+    방송: 종합
+    인터넷·시사: 종합
+    금융·보험: 금융
+    의약·바이오: 건강·의약
+    건설·부동산·에너지: 부동산·산업
+    자동차: 자동차
+    교육·법률·노동: 사회
+    농업·환경: 농업·환경
+    스포츠·연예: 스포츠·연예
+    지역지: 지역
+    영자지: 영문

@@ -5,6 +5,25 @@ test_initials_need_evidence (test_alias.AliasTests.test_initials_need_evidence) 
 test_no_merge_for_single_form (test_alias.AliasTests.test_no_merge_for_single_form) ... ok
 test_space_and_case_merge_with_stable_registry (test_alias.AliasTests.test_space_and_case_merge_with_stable_registry) ... ok
 test_baseline_needs_21_complete_days (test_alias.BaselineTests.test_baseline_needs_21_complete_days) ... ok
+test_hangul_ratio (test_audit.ClassifyTests.test_hangul_ratio) ... ok
+test_verdicts (test_audit.ClassifyTests.test_verdicts) ... ok
+test_candidate_verdicts (test_audit.E2ETests.test_candidate_verdicts) ... ok
+test_config_and_data_unchanged (test_audit.E2ETests.test_config_and_data_unchanged) ... ok
+test_current_feed_status (test_audit.E2ETests.test_current_feed_status) ... ok
+test_distribution_counts_only_new_stories_of_added_feeds (test_audit.E2ETests.test_distribution_counts_only_new_stories_of_added_feeds) ... ok
+test_no_headline_text_in_any_output (test_audit.E2ETests.test_no_headline_text_in_any_output) ... ok
+test_rank_and_gain (test_audit.E2ETests.test_rank_and_gain) ... ok
+test_report_sections (test_audit.E2ETests.test_report_sections) ... ok
+test_runs_and_writes_outputs (test_audit.E2ETests.test_runs_and_writes_outputs) ... ok
+test_deterministic (test_audit.GreedyTests.test_deterministic) ... ok
+test_overlapping_candidates_are_counted_once (test_audit.GreedyTests.test_overlapping_candidates_are_counted_once) ... ok
+test_audit_uses_collection_policy (test_audit.IndependenceTests.test_audit_uses_collection_policy) ... ok
+test_audit_workflow_is_manual_readonly_and_independent (test_audit.IndependenceTests.test_audit_workflow_is_manual_readonly_and_independent) ... ok
+test_collect_workflow_untouched_by_audit (test_audit.IndependenceTests.test_collect_workflow_untouched_by_audit) ... ok
+test_collection_code_does_not_import_audit (test_audit.IndependenceTests.test_collection_code_does_not_import_audit) ... ok
+test_robots_interval_and_timing (test_audit.LiveHttpPolicyTests.test_robots_interval_and_timing) ... ok
+test_exact_near_and_distinct (test_audit.StoryIndexTests.test_exact_near_and_distinct) ... ok
+test_political_items_are_not_indexed_and_skip_applies (test_audit.StoryIndexTests.test_political_items_are_not_indexed_and_skip_applies) ... ok
 test_equal_counts_group_with_longest_as_label (test_display.GroupTests.test_equal_counts_group_with_longest_as_label) ... ok
 test_group_never_replaces_or_merges_member_counts (test_display.GroupTests.test_group_never_replaces_or_merges_member_counts) ... ok
 test_input_rows_not_mutated (test_display.GroupTests.test_input_rows_not_mutated) ... ok
@@ -95,5 +114,5 @@ test_store_threshold_still_configurable (test_pipeline.PipelineTests.test_store_
 test_undated_items_are_not_recounted_on_later_days (test_pipeline.PipelineTests.test_undated_items_are_not_recounted_on_later_days) ... ok
 test_volume_drop_flagged (test_pipeline.PipelineTests.test_volume_drop_flagged) ... ok
 ----------------------------------------------------------------------
-Ran 91 tests in 56.552s
+Ran 110 tests in 90.224s
 OK

@@ -12,12 +12,16 @@ config/stopwords.txt     트렌드 신호가 못 되는 일반 단어
 config/politics_terms.txt 정치 헤드라인 제외용 단어
 config/display.yaml      화면 표시 규칙(포함 관계 묶기, 단일 매체 순위 하향, 장소 뒤 '서'). 저장·집계에는 쓰이지 않는다
 config/places.txt        '서' 정규화 허용 장소 목록
+config/audit.yaml        RSS 출처 감사의 판정 기준(수집에는 쓰이지 않음)
+config/feeds_candidates.csv 공개 목록에서 모은 신규 후보 피드(측정용 목록. 수집 대상이 아님)
 radar/                   수집·추출·집계·품질 판정 코드 (store.py: 일일 파일 읽기·쓰기, 최초 등장일)
 radar/display.py         화면 표시 계층 (읽기 전용. 수집·품질 코드는 이 모듈을 가져오지 않는다)
+radar/audit.py           RSS 출처 감사 로직 (읽기 전용. 수집 코드는 이 모듈을 가져오지 않는다)
 scripts/collect.py       수집 1회 (Actions가 매시간 실행)
 scripts/probe_feeds.py   모든 피드의 접근 가능 여부 점검 (수동 실행)
 scripts/status.py        수집 현황과 급증 판정 가능 여부
 scripts/preview.py       표시 계층 미리보기 (읽기 전용)
+scripts/audit_feeds.py   RSS 출처 감사 (수동 실행, 읽기 전용)
 scripts/simulate.py      오프라인 5일 시뮬레이션
 data/daily/날짜.csv.gz   키워드별 일일 집계 (장기 보관, gzip)   keyword,n,articles,outlets  (예전 날짜.csv 도 읽힘)
 data/days.csv            날짜별 품질 기록 (완전한 날 판정)
@@ -108,6 +112,20 @@ GitHub 의 `schedule`(cron)은 지연·누락될 수 있어(관측: 매시간 �
 - **장소 뒤 `서`**: `config/places.txt` 의 장소 이름 뒤에 붙은 경우만 표시용으로 뗍니다(`뉴욕서`→`뉴욕`). 보고서·청구서 같은 단어는 건드리지 않습니다.
 
 급증 판정·품질 판정·장기 분석은 이 계층을 쓰지 않고 원본 집계를 직접 읽습니다(테스트로 보장). `python scripts/preview.py --day 날짜` 로 결과를 볼 수 있습니다.
+
+## RSS 출처 감사 (수동 실행)
+
+현재 활성 피드와 공개 목록의 신규 후보를 같은 방식으로 측정해, 어떤 피드가 새로운 주제를 얼마나 가져오는지 비교하는 읽기 전용 도구입니다. **피드 목록·수집 설정·`data/` 를 바꾸지 않고, 신규 후보를 수집 대상에 넣지 않습니다.** 수집 워크플로(`collect.yml`)와 별개로 실행되며, 저장소 쓰기 권한이 없습니다.
+
+**실행 방법**: GitHub 저장소 → **Actions** 탭 → 왼쪽 목록의 **Audit RSS sources** → **Run workflow** (브랜치 main) → 초록색 **Run workflow**. 보통 3~10분 걸립니다. 끝나면 그 실행 화면에서
+- 아래쪽 **Summary** 에 보고서가 그대로 표시되고,
+- 맨 아래 **Artifacts → `audit-report`** 를 내려받으면 `audit_report.md`(보고서), `audit_feeds.csv`(피드별 측정값), `audit_distribution.csv`(매체·분야 분포)가 들어 있습니다. 보관 기간 30일.
+
+**측정 항목**: HTTP 상태, 응답 시간, XML 파싱, 최신 기사 시각, 최근 기사 수, 한글 비율, 정치 기사 비율, 시간대 어긋남 의심. **중복률**은 정규화 제목 해시 일치(같은 기사)와 핵심 단어 겹침(같은 사건)으로 계산하고, 후보는 현재 62개 피드 전체와, 현재 피드는 다른 매체 피드와 비교합니다. **추가 가치 순위**는 기존 피드와 앞서 고른 후보를 모두 반영하고도 남는 순수 신규 기사 수 순입니다.
+
+**정책**: 기존 수집과 같은 `HttpFetcher` 를 씁니다(robots.txt 확인, 같은 서버 최소 1초 간격, 타임아웃 20초, 재시도 1회, 같은 사용자 에이전트). 헤드라인 원문은 메모리에서 해시·키워드로만 쓰고 보고서·로그·산출 파일 어디에도 넣지 않습니다. 판정 기준은 `config/audit.yaml` 에 있습니다.
+
+한 시점의 스냅샷이므로 시간대를 달리해 두 번 실행해 비교하는 것을 권합니다. 결과를 보고 피드를 추가할지는 별도로 승인한 뒤 `feeds.yaml` 을 바꿉니다.
 
 ## 이용 조건 관련
 
