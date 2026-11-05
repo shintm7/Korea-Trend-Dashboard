@@ -1,0 +1,38 @@
+name: Audit RSS sources
+
+# RSS 출처 감사 (읽기 전용, 수동 실행 전용).
+# - 수집 워크플로(collect.yml)와 독립: 별도 concurrency 그룹, 저장소 쓰기 권한 없음, 상태 캐시·data 사용 없음.
+# - feeds.yaml 을 바꾸지 않고 신규 후보를 수집 대상에 넣지 않는다. 결과는 Artifact(audit-report)로만 제공한다.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Audit
+        run: python scripts/audit_feeds.py --out-dir audit-out | tee audit.log
+      - name: Summary
+        if: always()
+        run: |
+          if [ -f audit-out/audit_report.md ]; then cat audit-out/audit_report.md >> "$GITHUB_STEP_SUMMARY"; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audit-report
+          path: audit-out/
+          retention-days: 30
