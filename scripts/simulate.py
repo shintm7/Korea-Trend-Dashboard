@@ -88,7 +88,7 @@ def main():
                 (fx / f"bbb-{sid}.xml").unlink()
                 (fx / f"bbb-{sid}.timeout").write_text("")
         emit(f"--- {when:%Y-%m-%d %H:%M} KST ---")
-        r = subprocess.run([sys.executable, "-I", str(ROOT / "scripts" / "collect.py"),
+        r = subprocess.run([sys.executable, str(ROOT / "scripts" / "collect.py"),
                             "--feeds", str(ROOT / "tests" / "fixtures" / "sim_feeds.yaml"),
                             "--fixtures", str(fx), "--now", when.isoformat(),
                             "--data-dir", str(SIM / "data"), "--state-dir", str(SIM / "state")],
