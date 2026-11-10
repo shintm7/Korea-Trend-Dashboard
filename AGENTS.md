@@ -13,7 +13,7 @@
 - RSS 감사: `.github/workflows/audit.yml` 수동 실행, `scripts/audit_feeds.py`, `radar/audit.py`, `config/audit.yaml`, `config/feeds_candidates.csv`
 - 기존 네이버 검색어 대시보드는 `archive/v1-naver-search/`에 보관
 - `docs/index.html`은 임시 안내 화면. GitHub Pages가 `docs/`를 서비스
-- `AGENTS.md`는 이 패키지에서 새로 제공하는 작업 규칙이며, 저장소에 이미 존재한다고 가정하지 말 것.
+- `AGENTS.md`는 이 저장소의 AI 작업 규칙 파일이다. `fix/audit-reliability` PR 병합 후 정식 등록됨.
 
 ## 절대 원칙
 1. 작업 전 현재 `main`과 관련 파일을 직접 읽는다. README, REPORT, 코드, 테스트 사이 불일치를 확인한다.
