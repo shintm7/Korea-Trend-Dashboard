@@ -172,14 +172,14 @@ class RobotsCache:
                 if attempt == 0:
                     continue
                 return ("unavailable", None)
-            if r.status_code == 403:    # 명시적 접근 거부 (RFC 9309 section 2.3.1.2)
-                return ("blocked", None)
-            if r.status_code >= 500:
+            # 5xx 및 429(Too Many Requests): 일시 장애로 분류하여 1회 재시도 (RFC 9309 section 2.3.1.2)
+            if r.status_code >= 500 or r.status_code == 429:
                 if attempt == 0:
                     continue
                 return ("unavailable", None)
             rp = urllib.robotparser.RobotFileParser()
-            if r.status_code >= 400:    # robots.txt 없음(404/410 등) = 제한 없음
+            # 4xx 클라이언트 오류 (403, 404, 410 등): RFC 9309 2.3.1.2에 따라 robots.txt 부재 및 제한 없음 간주
+            if r.status_code >= 400:
                 rp.parse([])
             else:
                 rp.parse(r.text.splitlines())

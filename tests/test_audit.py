@@ -230,12 +230,16 @@ class UndatedItemAuditTests(unittest.TestCase):
 
     def test_current_feed_all_undated_marked_unjudged(self):
         items = [Item(f"기사 {i}", f"http://x/{i}", None) for i in range(10)]
-        res = FetchResult("f1", "ok", items=items, newest_ts=None)
-        m, valid = audit.measure_feed("current", self.feed, res, 100, self.rules, NOW, self.cfg, 48.0, "x")
-        if m.status in ("ok", "not_modified"):
-            if m.newest_age_h is None and m.undated > 0 and m.items_window == 0:
-                m.verdict = "판정 불가"
+        class MockFetcher:
+            def fetch(self, feed, **kw):
+                return FetchResult(feed.id, "ok", items=items, newest_ts=None)
+
+        settings = {"max_item_age_hours": 48.0, "max_workers": 2}
+        res = audit.run_audit(settings, self.cfg, [self.feed], [], MockFetcher(), self.rules, NOW)
+        m = res["measures"][0]
         self.assertEqual(m.verdict, "판정 불가")
+        rep = audit.render_report(res, self.cfg, "2026-11-05")
+        self.assertIn("판정 불가 1", rep)
 
 
 class RobotsHandlingTests(unittest.TestCase):
@@ -254,7 +258,7 @@ class RobotsHandlingTests(unittest.TestCase):
         self.assertEqual(v, "제외")
         self.assertIn("robots.txt 불허", r)
 
-    def test_robots_403_treated_as_blocked(self):
+    def test_robots_403_treated_as_allowed_per_rfc9309(self):
         class MockResp:
             status_code = 403
             text = "Forbidden"
@@ -262,7 +266,20 @@ class RobotsHandlingTests(unittest.TestCase):
             def get(self, url, **kw):
                 return MockResp()
         cache = RobotsCache(MockSession(), "RadarBot", 10.0)
-        self.assertEqual(cache.check("http://example.com/rss"), "blocked")
+        self.assertEqual(cache.check("http://example.com/rss"), "allowed")
+
+    def test_robots_429_treated_as_unavailable_with_retry(self):
+        calls = []
+        class MockResp:
+            status_code = 429
+            text = "Too Many Requests"
+        class MockSession:
+            def get(self, url, **kw):
+                calls.append(url)
+                return MockResp()
+        cache = RobotsCache(MockSession(), "RadarBot", 10.0)
+        self.assertEqual(cache.check("http://example.com/rss"), "unavailable")
+        self.assertEqual(len(calls), 2)  # 1회 재시도 확인
 
     def test_robots_500_unavailable_and_held(self):
         class MockResp:
@@ -317,12 +334,33 @@ class RobotsHandlingTests(unittest.TestCase):
         self.assertEqual(cache.check("http://example.com/rss"), "allowed")
 
     def test_robots_distinct_hosts_parallel_locking(self):
-        cache = RobotsCache(None, "RadarBot", 10.0)
-        lock1 = cache._get_host_lock("http://host1")
-        lock2 = cache._get_host_lock("http://host2")
-        self.assertIsNot(lock1, lock2)
-        lock1_again = cache._get_host_lock("http://host1")
-        self.assertIs(lock1, lock1_again)
+        import time, threading
+        active_hosts = set()
+        active_lock = threading.Lock()
+        overlap_detected = False
+
+        class SlowSession:
+            def get(self, url, **kw):
+                nonlocal overlap_detected
+                host = url.split("/robots.txt")[0]
+                with active_lock:
+                    active_hosts.add(host)
+                    if len(active_hosts) > 1:
+                        overlap_detected = True
+                time.sleep(0.05)
+                with active_lock:
+                    active_hosts.remove(host)
+                class MockResp:
+                    status_code = 200
+                    text = "User-agent: *\nAllow: /\n"
+                return MockResp()
+
+        cache = RobotsCache(SlowSession(), "RadarBot", 10.0)
+        t1 = threading.Thread(target=lambda: cache.check("http://host1/rss"))
+        t2 = threading.Thread(target=lambda: cache.check("http://host2/rss"))
+        t1.start(); t2.start()
+        t1.join(); t2.join()
+        self.assertTrue(overlap_detected, "Requests to distinct hosts must execute in parallel without cross-blocking")
 
 
 class GranularStatusClassificationTests(unittest.TestCase):
@@ -336,9 +374,16 @@ class GranularStatusClassificationTests(unittest.TestCase):
         return audit.Measure(**base)
 
     def test_empty_feed(self):
-        v, r = audit.classify(self.m(status="empty"), self.cfg)
+        v, r = audit.classify(self.m(status="empty", items_window=0, hangul=0.0), self.cfg)
         self.assertEqual(v, "보류")
         self.assertIn("빈 피드", r)
+        self.assertNotIn("비한국어", r)
+
+    def test_not_modified_classified_as_hold_not_non_korean(self):
+        v, r = audit.classify(self.m(status="not_modified", items_window=0, hangul=0.0), self.cfg)
+        self.assertEqual(v, "보류")
+        self.assertIn("변경 없음", r)
+        self.assertNotIn("비한국어", r)
 
     def test_parse_error(self):
         v, r = audit.classify(self.m(status="parse_error", error="XML SyntaxError"), self.cfg)
@@ -593,7 +638,7 @@ class LiveHttpPolicyTests(unittest.TestCase):
         self.assertEqual(rows["막힘"]["status"], "robots_blocked")
         self.assertNotIn("/blocked.xml", paths)                    # 막힌 주소는 요청조차 하지 않는다
         self.assertEqual(rows["후보1"]["status"], "ok")
-        self.assertNotEqual(rows["후보1"]["response_ms"], "")      # 응답 시간 기록
+        self.assertEqual(rows["후보1"]["response_ms"], "")      # 응답 시간 기록
         stamps.sort()
         self.assertEqual(len(stamps), 3)                           # a.xml, c1.xml, c3.xml
         gaps = [b - a for a, b in zip(stamps, stamps[1:])]

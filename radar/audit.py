@@ -199,14 +199,14 @@ def classify(m: Measure, cfg: dict) -> tuple[str, str]:
     # --- M2: 세분화 접근 실패 상태 ---
     if m.status == "empty":
         return "보류", "빈 피드(기사 0건)"
+    if m.status == "not_modified":
+        return "보류", "변경 없음(304)"
     if m.status == "parse_error":
         return "보류", f"파싱 실패({m.error[:60] if m.error else '?'})"
-    if m.status == "not_modified":
-        pass  # ok와 동일하게 계속 판정
-    elif m.status in ("timeout", "network_error") or (m.http and m.http >= 500):
+    if m.status in ("timeout", "network_error") or (m.http and m.http >= 500):
         err_detail = f"{m.status}" + (f" HTTP {m.http}" if m.http else "")
         return "보류", f"일시 장애 (재측정 필요: {err_detail})"
-    elif m.status not in ("ok", "not_modified"):
+    if m.status != "ok":
         err_detail = f"{m.status}" + (f" HTTP {m.http}" if m.http else "")
         return "제외", f"접근 실패({err_detail})"
 
@@ -214,8 +214,8 @@ def classify(m: Measure, cfg: dict) -> tuple[str, str]:
     if m.items_window == 0 and m.newest_age_h is not None and m.newest_age_h > th["stale_exclude_hours"]:
         return "제외", f"정지(최신 기사 {m.newest_age_h}시간 전)"
 
-    # --- M2: 비한국어 세분화 ---
-    if m.hangul < th["min_hangul_ratio"]:
+    # --- M2: 비한국어 세분화 (기사가 존재하는 경우만 판정) ---
+    if (m.items_window or m.future or m.undated) and m.hangul < th["min_hangul_ratio"]:
         ratio_pct = f"{m.hangul:.0%}"
         return "제외", f"비한국어(한글 {ratio_pct})"
 
@@ -442,10 +442,13 @@ def render_report(result: dict, acfg: dict, stamp: str) -> str:
          f"측정 구간: 최근 {result['window_h']}시간 기사(날짜 없는 기사 포함). **한 시점의 스냅샷 1회**이므로 "
          "시간대를 달리해 한 번 더 실행해 비교하는 것을 권한다.", ""]
 
-    ok_c = [m for m in cur if m.verdict == "정상"]
+    n_cur_ok = sum(m.verdict == "정상" for m in cur)
+    n_cur_suspicious = sum(m.verdict == "정지 의심" for m in cur)
+    n_cur_failed = sum(m.verdict == "실패" for m in cur)
+    n_cur_unjudged = sum(m.verdict == "판정 불가" for m in cur)
     L += ["## 1. 요약", "",
-          f"- 현재 활성 피드 {len(cur)}개: 정상 {len(ok_c)}, 정지 의심 {sum(m.verdict == '정지 의심' for m in cur)}, "
-          f"실패 {sum(m.verdict == '실패' for m in cur)}",
+          f"- 현재 활성 피드 {len(cur)}개: 정상 {n_cur_ok}, 정지 의심 {n_cur_suspicious}, "
+          f"실패 {n_cur_failed}, 판정 불가 {n_cur_unjudged}",
           f"- 신규 후보 {len(can)}개: **추가 검토 {sum(m.verdict == '추가 검토' for m in can)}**, "
           f"보류 {sum(m.verdict == '보류' for m in can)}, 제외 {sum(m.verdict == '제외' for m in can)}", ""]
 
