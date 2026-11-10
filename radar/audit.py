@@ -67,23 +67,35 @@ class AItem:
 def build_items(feed: Feed, res: FetchResult, rules: Rules, now: float, window_h: float, fresh_h: float):
     """측정 구간 안의 기사를 해시·단어 집합으로 바꾼다 (제목 원문은 돌려주지 않는다).
 
-    돌려주는 값: (items, stats). stats 에는 구간 기사 수, 신선 구간 기사 수, 날짜 없는 기사 수, 미래 시각 기사 수.
+    미래 기사(now + 1800초 초과)는 items_window, fresh, 중복률, marginal_gain 계산에서 제외한다.
+    날짜 없는 기사(undated)도 중복률·신규 기여도 계산에서 제외한다.
+
+    돌려주는 값: (valid_items, stats, newest_valid_ts).
+      valid_items: 미래 기사·날짜없는 기사를 제외한 측정 대상
+      stats: window, fresh, undated, future 카운트
+      newest_valid_ts: 미래 기사를 제외한 유효 기사 중 가장 최근 epoch (없으면 None)
     """
-    items, in_fresh, undated, future = [], 0, 0, 0
+    valid_items, in_fresh, undated, future = [], 0, 0, 0
+    valid_stamps = []
     for it in res.items:
         if it.ts is None:
             undated += 1
-        else:
-            if now - it.ts > window_h * 3600:
-                continue
-            if it.ts > now + 1800:
-                future += 1
-            if now - it.ts <= fresh_h * 3600:
-                in_fresh += 1
+            # 날짜 없는 기사는 중복·신규 계산에서 제외 — items에 추가하지 않는다
+            continue
+        if it.ts > now + 1800:
+            future += 1
+            # 미래 기사도 계산 대상에서 제외
+            continue
+        if now - it.ts > window_h * 3600:
+            continue
+        if now - it.ts <= fresh_h * 3600:
+            in_fresh += 1
+        valid_stamps.append(it.ts)
         e = extract(it.title, rules)
         toks = frozenset(k for k in e.keywords if " " not in k and len(k) >= 2)
-        items.append(AItem(feed.id, feed.pub, e.hash, toks, e.political))
-    return items, {"window": len(items), "fresh": in_fresh, "undated": undated, "future": future}
+        valid_items.append(AItem(feed.id, feed.pub, e.hash, toks, e.political))
+    newest_valid_ts = max(valid_stamps) if valid_stamps else None
+    return valid_items, {"window": len(valid_items), "fresh": in_fresh, "undated": undated, "future": future}, newest_valid_ts
 
 
 class StoryIndex:
@@ -146,7 +158,7 @@ class Measure:
     n_eval: int = 0           # 정치 제외 후 비교 대상 기사 수
     dup_exact: float = 0.0    # 현재 피드(후보) 또는 다른 현재 피드(현재)와 같은 기사 비율
     dup_near: float = 0.0     # 같은 기사 + 같은 사건 비율
-    new_rate: float = 0.0     # 1 - dup_near
+    new_rate: float | None = None     # 1 - dup_near (비교 기사 없으면 None)
     marginal_gain: int | None = None
     rank: int | None = None
     verdict: str = ""
@@ -159,12 +171,17 @@ def measure_feed(kind: str, feed: Feed, res: FetchResult, ms: int | None, rules:
     m = Measure(kind, feed, category, status=res.status, http=res.http, ms=ms, robots=res.robots, error=res.error)
     items: list[AItem] = []
     if res.ok and res.items:
-        items, st = build_items(feed, res, rules, now, window_h, th["fresh_hours"])
+        items, st, _ = build_items(feed, res, rules, now, window_h, th["fresh_hours"])
         m.items_window, m.items_fresh, m.undated, m.future = st["window"], st["fresh"], st["undated"], st["future"]
+        # hangul_ratio는 모든 기사 제목 기준(날짜 없는 기사 포함, 미래 기사 포함)
         m.hangul = hangul_ratio([i.title for i in res.items])
         m.political_share = round(sum(i.political for i in items) / len(items), 3) if items else 0.0
         m.n_eval = sum(not i.political for i in items)
-    if res.newest_ts:
+        # newest_age_h는 미래 기사를 제외한 유효 기사 중 가장 최근 시각 기준 (H1.4)
+        non_future_stamps = [i.ts for i in res.items if i.ts is not None and i.ts <= now + 1800]
+        if non_future_stamps:
+            m.newest_age_h = round((now - max(non_future_stamps)) / 3600, 1)
+    elif res.newest_ts is not None and res.newest_ts <= now + 1800:
         m.newest_age_h = round((now - res.newest_ts) / 3600, 1)
     return m, items
 
@@ -172,20 +189,53 @@ def measure_feed(kind: str, feed: Feed, res: FetchResult, ms: int | None, rules:
 def classify(m: Measure, cfg: dict) -> tuple[str, str]:
     """후보 한 개의 1차 판정(순위 반영 전). 정상이면 ('통과','')."""
     th = cfg["thresholds"]
-    if m.status in ("robots_blocked", "robots_unavailable"):
-        return "제외", "robots.txt 불허/확인 불가"
-    if m.status not in ("ok", "not_modified"):
-        return "제외", f"접근 실패({m.status}{' ' + str(m.http) if m.http else ''})"
+
+    # --- H2: robots.txt 상태 세분화 ---
+    if m.status == "robots_blocked":
+        return "제외", "robots.txt 불허"
+    if m.status == "robots_unavailable":
+        return "보류", "robots.txt 확인 불가 (재측정 필요)"
+
+    # --- M2: 세분화 접근 실패 상태 ---
+    if m.status == "empty":
+        return "보류", "빈 피드(기사 0건)"
+    if m.status == "parse_error":
+        return "보류", f"파싱 실패({m.error[:60] if m.error else '?'})"
+    if m.status == "not_modified":
+        pass  # ok와 동일하게 계속 판정
+    elif m.status in ("timeout", "network_error") or (m.http and m.http >= 500):
+        err_detail = f"{m.status}" + (f" HTTP {m.http}" if m.http else "")
+        return "보류", f"일시 장애 (재측정 필요: {err_detail})"
+    elif m.status not in ("ok", "not_modified"):
+        err_detail = f"{m.status}" + (f" HTTP {m.http}" if m.http else "")
+        return "제외", f"접근 실패({err_detail})"
+
+    # 기사 없음인데 오래된 경우
     if m.items_window == 0 and m.newest_age_h is not None and m.newest_age_h > th["stale_exclude_hours"]:
         return "제외", f"정지(최신 기사 {m.newest_age_h}시간 전)"
+
+    # --- M2: 비한국어 세분화 ---
     if m.hangul < th["min_hangul_ratio"]:
-        return "제외", "비한국어 (추출기는 한국어용)"
+        ratio_pct = f"{m.hangul:.0%}"
+        return "제외", f"비한국어(한글 {ratio_pct})"
+
     if m.items_window and m.political_share >= th["max_political_share"]:
         return "제외", f"정치 위주 (정치 {m.political_share:.0%})"
+    # stale 판정: items_window 최소치보다 먼저 체크 (정지 피드가 기사 드묾으로 오판되지 않도록)
     if m.newest_age_h is not None and m.newest_age_h > th["stale_exclude_hours"]:
         return "제외", f"정지(최신 기사 {m.newest_age_h}시간 전)"
+
+    # --- H1: 미래 기사 비율이 25% 이상이면 보류(시간대 의심) ---
+    dated_total = m.items_window + m.future  # 미래+유효 모두 날짜 있는 기사
+    if dated_total > 0 and m.future / dated_total >= 0.25:
+        return "보류", f"미래 시각 기사 비율 {m.future}/{dated_total} (시간대 의심)"
+
+    # --- M1: 날짜 없는 기사로 판정 불가 ---
     if m.newest_age_h is None:
+        if m.undated > 0 and m.items_window == 0:
+            return "보류", f"유효 날짜 기사 없음(날짜 없는 기사 {m.undated}건)"
         return "보류", "기사 날짜 없음(신선도 판단 불가)"
+
     if m.newest_age_h > th["fresh_hours"]:
         return "보류", f"발행 드묾(최신 기사 {m.newest_age_h}시간 전)"
     if m.items_window < th["min_items_window"]:
@@ -195,19 +245,37 @@ def classify(m: Measure, cfg: dict) -> tuple[str, str]:
     return "통과", ""
 
 
+def dedup_candidate_items(items: list[AItem], nd: dict) -> list[AItem]:
+    """후보 피드 자체의 내부 중복(완전 일치 및 근사 중복) 기사를 1건으로 축약한다."""
+    deduped: list[AItem] = []
+    for it in items:
+        if it.political:
+            continue
+        if not deduped:
+            deduped.append(it)
+            continue
+        idx = StoryIndex(deduped, nd)
+        if not idx.match(it):
+            deduped.append(it)
+    return deduped
+
+
 def greedy_rank(base: list[AItem], cands: dict[str, list[AItem]], nd: dict) -> list[tuple[str, int]]:
     """이미 있는 피드(base)와, 앞서 고른 후보에 없는 기사를 가장 많이 가져오는 후보부터 순서대로 고른다.
 
-    후보끼리 겹치는 기사는 한 번만 센다. 반환: [(후보 id, 순수 신규 기사 수)] 순위순.
+    후보 자체의 내부 중복 기사 및 후보끼리 겹치는 기사는 한 번만 센다.
+    반환: [(후보 id, 순수 신규 기사 수)] 순위순.
     """
+    # M3: 각 후보 내부의 중복(exact 및 near-dup) 기사를 먼저 1건으로 축약
+    clean_cands = {fid: dedup_candidate_items(items, nd) for fid, items in cands.items()}
     base_idx = StoryIndex(base, nd)
-    unc = {fid: [it for it in items if not it.political and not base_idx.match(it)] for fid, items in cands.items()}
-    remaining, out = set(cands), []
+    unc = {fid: [it for it in items if not base_idx.match(it)] for fid, items in clean_cands.items()}
+    remaining, out = set(clean_cands), []
     while remaining:
         best = max(sorted(remaining), key=lambda f: len(unc[f]))
         out.append((best, len(unc[best])))
         remaining.discard(best)
-        idx = StoryIndex(cands[best], nd)
+        idx = StoryIndex(clean_cands[best], nd)
         for f in remaining:
             unc[f] = [it for it in unc[f] if not idx.match(it)]
     return out
@@ -268,12 +336,19 @@ def run_audit(settings: dict, acfg: dict, current: list[Feed], cands: list[Feed]
 
     for m in cur:   # 현재 피드: 다른 매체 피드와의 중복률 (같은 매체의 섹션 피드끼리는 제외)
         m.dup_exact, m.dup_near = rates(items_by[m.feed.id], lambda it: (lambda o: o.pub == it.pub))
-        m.new_rate = round(1 - m.dup_near, 3)
-        m.verdict = "정상" if m.status in ("ok", "not_modified") and (m.newest_age_h is None or m.newest_age_h <= th["fresh_hours"]) \
-            else ("정지 의심" if m.status in ("ok", "not_modified") else "실패")
+        m.new_rate = round(1 - m.dup_near, 3) if m.n_eval else None  # L5: 비교 기사 없으면 비워둠
+        if m.status in ("ok", "not_modified"):
+            if m.newest_age_h is None and m.undated > 0 and m.items_window == 0:
+                m.verdict = "판정 불가"   # M1: 날짜 없는 기사만 있는 현재 피드
+            elif m.newest_age_h is None or m.newest_age_h <= th["fresh_hours"]:
+                m.verdict = "정상"
+            else:
+                m.verdict = "정지 의심"
+        else:
+            m.verdict = "실패"
     for m in can:   # 후보: 현재 피드 전체와의 중복률
         m.dup_exact, m.dup_near = rates(items_by[m.feed.id], lambda it: None)
-        m.new_rate = round(1 - m.dup_near, 3) if m.n_eval else 0.0
+        m.new_rate = round(1 - m.dup_near, 3) if m.n_eval else None  # L5: n_eval==0이면 빈값
         m.verdict, m.reason = classify(m, acfg)
 
     elig = {m.feed.id: items_by[m.feed.id] for m in can if m.verdict == "통과"}
@@ -310,21 +385,30 @@ def run_audit(settings: dict, acfg: dict, current: list[Feed], cands: list[Feed]
 # ---------------------------------------------------------------- 출력 (제목 원문은 들어 있지 않다)
 
 FEED_COLS = ["kind", "id", "publisher", "section_or_group", "category", "url", "status", "http", "response_ms",
-             "robots", "items_window", "items_fresh", "undated", "future_items", "newest_age_h", "hangul_ratio",
+             "robots", "items_window", "items_fresh", "undated", "future_items", "future_ratio",
+             "newest_age_h", "hangul_ratio",
              "political_share", "dup_exact", "dup_near", "new_rate", "marginal_gain", "rank", "verdict", "reason", "error"]
+
+
+def _safe_cell(s: str) -> str:
+    """Markdown 테이블 셀에서 파이프·줄바꿈을 이스케이프한다 (L4)."""
+    return s.replace("|", r"\|").replace("\n", " ").replace("\r", "")
 
 
 def feed_rows(result: dict) -> list[dict]:
     rows = []
     for m in result["measures"]:
+        dated_total = m.items_window + m.future
+        future_ratio = round(m.future / dated_total, 3) if dated_total else ""
         rows.append({"kind": m.kind, "id": m.feed.id, "publisher": m.feed.pub, "section_or_group": m.feed.section,
                      "category": m.category, "url": m.feed.url, "status": m.status, "http": m.http or "",
                      "response_ms": m.ms if m.ms is not None else "", "robots": m.robots,
                      "items_window": m.items_window, "items_fresh": m.items_fresh, "undated": m.undated,
-                     "future_items": m.future,
+                     "future_items": m.future, "future_ratio": future_ratio,
                      "newest_age_h": m.newest_age_h if m.newest_age_h is not None else "",
                      "hangul_ratio": m.hangul, "political_share": m.political_share, "dup_exact": m.dup_exact,
-                     "dup_near": m.dup_near, "new_rate": m.new_rate,
+                     "dup_near": m.dup_near,
+                     "new_rate": m.new_rate if m.new_rate is not None else "",  # L5
                      "marginal_gain": m.marginal_gain if m.marginal_gain is not None else "",
                      "rank": m.rank or "", "verdict": m.verdict, "reason": m.reason, "error": m.error[:120]})
     return rows
@@ -371,7 +455,7 @@ def render_report(result: dict, acfg: dict, stamp: str) -> str:
         L += ["| 판정 | 피드 | 상태 | HTTP | 최신 기사(시간 전) | 비고 |", "|---|---|---|---|---|---|"]
         for m in bad:
             L.append(f"| {m.verdict} | {m.feed.id} | {m.status} | {m.http or ''} | "
-                     f"{m.newest_age_h if m.newest_age_h is not None else ''} | {m.error[:60]} |")
+                     f"{m.newest_age_h if m.newest_age_h is not None else ''} | {_safe_cell(m.error[:60])} |")
     else:
         L.append("모든 현재 피드가 정상이다.")
     resp = sorted(m.ms for m in cur if m.ms is not None)
@@ -404,8 +488,9 @@ def render_report(result: dict, acfg: dict, stamp: str) -> str:
           "`같은 기사` = 정규화 제목 해시 일치. `같은 사건 포함` = 해시 일치 또는 핵심 단어 집합이 충분히 겹침. "
           "`신규 비율` = 1 − 같은 사건 포함 (정치 기사는 제외하고 계산).", "",
           "| 후보 | 비교 기사 | 같은 기사 | 같은 사건 포함 | 신규 비율 |", "|---|---:|---:|---:|---:|"]
-    for m in sorted((m for m in can if m.n_eval), key=lambda m: -m.new_rate):
-        L.append(f"| {m.feed.pub} | {m.n_eval} | {_pct(m.dup_exact)} | {_pct(m.dup_near)} | {_pct(m.new_rate)} |")
+    for m in sorted((m for m in can if m.n_eval), key=lambda m: -(m.new_rate or 0)):
+        new_rate_str = _pct(m.new_rate) if m.new_rate is not None else ""
+        L.append(f"| {m.feed.pub} | {m.n_eval} | {_pct(m.dup_exact)} | {_pct(m.dup_near)} | {new_rate_str} |")
 
     L += ["", "## 6. 추가 가치 순위", "",
           "기존 피드와, 앞서 고른 후보까지 반영하고도 남는 **순수 신규 기사 수**가 큰 순서로 고른다 (후보끼리 겹치는 기사는 한 번만 센다). "
@@ -415,7 +500,8 @@ def render_report(result: dict, acfg: dict, stamp: str) -> str:
     for n, (fid, gain) in enumerate(result["ranking"], 1):
         m = next(x for x in can if x.feed.id == fid)
         cum += gain
-        L.append(f"| {n} | {m.feed.pub} | {m.category} | {gain} | {cum} | {_pct(m.new_rate)} | {m.verdict} |")
+        new_rate_str = _pct(m.new_rate) if m.new_rate is not None else ""
+        L.append(f"| {n} | {m.feed.pub} | {m.category} | {gain} | {cum} | {new_rate_str} | {m.verdict} |")
 
     L += ["", "## 7. 최종 분류안 (피드 목록 변경은 별도 승인 후)", ""]
     for verdict in ("추가 검토", "보류", "제외"):
@@ -427,7 +513,7 @@ def render_report(result: dict, acfg: dict, stamp: str) -> str:
         L += ["| 후보 | 분류 | URL | 사유 |", "|---|---|---|---|"]
         order = sorted(rows, key=lambda m: (m.rank or 9999, m.feed.pub))
         for m in order:
-            L.append(f"| {m.feed.pub} | {m.category} | {m.feed.url} | {m.reason} |")
+            L.append(f"| {_safe_cell(m.feed.pub)} | {_safe_cell(m.category)} | {m.feed.url} | {_safe_cell(m.reason)} |")
         L.append("")
 
     L += ["## 8. 해석 시 주의", "",
