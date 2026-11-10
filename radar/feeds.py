@@ -107,38 +107,84 @@ def parse_feed_bytes(feed_id: str, content: bytes, now: float, stale_hours: floa
 
 
 class RobotsCache:
-    """서버별 robots.txt를 한 번만 읽어 허용 여부를 판단한다."""
+    """서버별 robots.txt를 한 번만 읽어 허용 여부를 판단한다.
+
+    잠금 설계:
+      _cache_lock  — _cache 딕셔너리 읽기/쓰기 보호(매우 짧게 보유).
+      _host_locks  — 호스트별 잠금. 같은 호스트의 중복 요청은 직렬화하되,
+                     다른 호스트 요청을 블로킹하지 않는다.
+    일시적인 5xx/timeout/네트워크 오류는 'unavailable'로 돌려주고 캐시하지 않는다.
+    명시적 Disallow는 'blocked', robots.txt 없음(404 등)은 'allowed'로 처리한다.
+    """
 
     def __init__(self, session: requests.Session, ua: str, timeout: float):
         self.session, self.ua, self.timeout = session, ua, timeout
         self._cache: dict[str, tuple[str, urllib.robotparser.RobotFileParser | None]] = {}
-        self._lock = threading.Lock()
+        self._cache_lock = threading.Lock()
+        self._host_locks: dict[str, threading.Lock] = {}
+        self._host_locks_guard = threading.Lock()
+
+    def _get_host_lock(self, host: str) -> threading.Lock:
+        with self._host_locks_guard:
+            return self._host_locks.setdefault(host, threading.Lock())
 
     def check(self, url: str) -> str:
         """'allowed' | 'blocked' | 'unavailable'"""
         p = urllib.parse.urlsplit(url)
         host = f"{p.scheme}://{p.netloc}"
-        with self._lock:
-            if host not in self._cache:
-                self._cache[host] = self._load(host)
-            state, rp = self._cache[host]
-        if state != "ok":
-            return state
-        return "allowed" if rp.can_fetch(self.ua, url) else "blocked"
 
-    def _load(self, host: str):
-        try:
-            r = self.session.get(host + "/robots.txt", timeout=self.timeout)
-        except requests.RequestException:
-            return ("unavailable", None)
-        if r.status_code >= 500:
-            return ("unavailable", None)
-        rp = urllib.robotparser.RobotFileParser()
-        if r.status_code >= 400:        # robots.txt 없음 = 제한 없음
-            rp.parse([])
-        else:
-            rp.parse(r.text.splitlines())
-        return ("ok", rp)
+        # 캐시 히트 — 잠금 없이 빠르게 확인
+        with self._cache_lock:
+            cached = self._cache.get(host)
+        if cached is not None:
+            state, rp = cached
+            if state != "ok":
+                return state
+            return "allowed" if rp.can_fetch(self.ua, url) else "blocked"
+
+        # 캐시 미스 — 호스트별 잠금으로 중복 요청 방지
+        host_lock = self._get_host_lock(host)
+        with host_lock:
+            # 잠금 대기 중 다른 스레드가 채웠을 수 있으므로 재확인
+            with self._cache_lock:
+                cached = self._cache.get(host)
+            if cached is not None:
+                state, rp = cached
+                if state != "ok":
+                    return state
+                return "allowed" if rp.can_fetch(self.ua, url) else "blocked"
+
+            state, rp = self._load(host)
+            # 일시 장애(unavailable)는 캐시하지 않는다 — 다음 호출 시 재시도 가능
+            if state != "unavailable":
+                with self._cache_lock:
+                    self._cache[host] = (state, rp)
+            if state != "ok":
+                return state
+            return "allowed" if rp.can_fetch(self.ua, url) else "blocked"
+
+    def _load(self, host: str) -> tuple:
+        """robots.txt를 가져온다. 일시 장애면 1회 재시도 후 'unavailable'."""
+        for attempt in range(2):
+            try:
+                r = self.session.get(host + "/robots.txt", timeout=self.timeout)
+            except requests.RequestException:
+                if attempt == 0:
+                    continue
+                return ("unavailable", None)
+            if r.status_code == 403:    # 명시적 접근 거부 (RFC 9309 section 2.3.1.2)
+                return ("blocked", None)
+            if r.status_code >= 500:
+                if attempt == 0:
+                    continue
+                return ("unavailable", None)
+            rp = urllib.robotparser.RobotFileParser()
+            if r.status_code >= 400:    # robots.txt 없음(404/410 등) = 제한 없음
+                rp.parse([])
+            else:
+                rp.parse(r.text.splitlines())
+            return ("ok", rp)
+        return ("unavailable", None)
 
 
 class HttpFetcher:
