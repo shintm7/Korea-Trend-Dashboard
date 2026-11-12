@@ -2,6 +2,7 @@
 수집 워크플로와의 독립성)."""
 import csv
 import datetime as dt
+import email.utils
 import hashlib
 import http.server
 import subprocess
@@ -10,6 +11,7 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 import yaml
@@ -20,7 +22,9 @@ sys.path.insert(0, str(ROOT / "tests"))
 
 from helpers import rss  # noqa: E402
 from radar import audit  # noqa: E402
-from radar.audit import AItem, StoryIndex, greedy_rank  # noqa: E402
+from radar.audit import AItem, StoryIndex, greedy_rank, dedup_candidate_items  # noqa: E402
+from radar.extract import Rules  # noqa: E402
+from radar.feeds import Feed, FetchResult, Item, RobotsCache, parse_feed_bytes  # noqa: E402
 
 NOW_ISO = "2026-11-05T12:00:00+09:00"
 NOW = dt.datetime.fromisoformat(NOW_ISO).timestamp()
@@ -91,6 +95,444 @@ class ClassifyTests(unittest.TestCase):
     def test_hangul_ratio(self):
         self.assertEqual(audit.hangul_ratio(["한글 제목"]), 1.0)
         self.assertLess(audit.hangul_ratio(["Korea economy news"]), 0.1)
+
+
+class InternalDeduplicationTests(unittest.TestCase):
+    def test_candidate_internal_exact_duplicates_collapsed_to_one(self):
+        base = []
+        dup_items = [it("c1", "pub", "hash_same", {"사과", "포도", "딸기"}) for _ in range(5)]
+        deduped = dedup_candidate_items(dup_items, ND)
+        self.assertEqual(len(deduped), 1)
+        rank = dict(greedy_rank(base, {"c1": dup_items}, ND))
+        self.assertEqual(rank["c1"], 1)
+
+    def test_candidate_internal_near_duplicates_collapsed_to_one(self):
+        base = []
+        near_items = [
+            it("c1", "pub", "h1", {"사과", "포도", "딸기", "수박"}),
+            it("c1", "pub", "h2", {"사과", "포도", "딸기", "참외"}),
+            it("c1", "pub", "h3", {"사과", "포도", "딸기", "복숭아"}),
+            it("c1", "pub", "h4", {"사과", "포도", "딸기", "자두"}),
+            it("c1", "pub", "h5", {"사과", "포도", "딸기", "바나나"}),
+        ]
+        deduped = dedup_candidate_items(near_items, ND)
+        self.assertEqual(len(deduped), 1)
+        rank = dict(greedy_rank(base, {"c1": near_items}, ND))
+        self.assertEqual(rank["c1"], 1)
+
+    def test_internal_and_cross_candidate_deduplication_combined(self):
+        base = [it("base", "base", "b1", {"우주", "로켓", "발사"})]
+        c1 = [
+            it("c1", "c1", "hA1", {"사과", "포도", "딸기"}),
+            it("c1", "c1", "hA2", {"사과", "포도", "딸기"}),
+            it("c1", "c1", "hA3", {"사과", "포도", "딸기"}),
+            it("c1", "c1", "hB", {"고양이", "강아지", "호랑이"}),
+        ]
+        c2 = [
+            it("c2", "c2", "hA4", {"사과", "포도", "딸기"}),
+            it("c2", "c2", "hC", {"독수리", "갈매기", "비둘기"}),
+        ]
+        rank = dict(greedy_rank(base, {"c1": c1, "c2": c2}, ND))
+        self.assertEqual(rank["c1"], 2)  # A and B (internal dup of A collapsed)
+        self.assertEqual(rank["c2"], 1)  # C only (A covered by c1)
+
+
+class FutureItemAuditTests(unittest.TestCase):
+    def setUp(self):
+        self.rules = Rules.from_lists([], [], 3, 80)
+        self.cfg = audit.load_config()
+        self.feed = Feed(id="f1", pub="pub", name="pub", section="x", title="t", url="http://x/rss")
+
+    def test_future_items_excluded_from_window_and_fresh(self):
+        items = [
+            Item("과거 기사 1", "http://x/1", NOW - 3600),
+            Item("과거 기사 2", "http://x/2", NOW - 7200),
+            Item("미래 기사 1", "http://x/3", NOW + 3600),
+            Item("미래 기사 2", "http://x/4", NOW + 7200),
+        ]
+        res = FetchResult("f1", "ok", items=items, newest_ts=NOW + 7200)
+        valid, st, newest_valid_ts = audit.build_items(self.feed, res, self.rules, NOW, 48.0, 24.0)
+        self.assertEqual(len(valid), 2)
+        self.assertEqual(st["future"], 2)
+        self.assertEqual(st["window"], 2)
+        self.assertEqual(st["fresh"], 2)
+        self.assertEqual(newest_valid_ts, NOW - 3600)
+
+    def test_single_future_item_does_not_distort_newest_age(self):
+        old_ts = NOW - 100 * 3600
+        items = [Item(f"오래된 기사 {i}", f"http://x/{i}", old_ts) for i in range(5)]
+        items.append(Item("미래 기사", "http://x/f", NOW + 3600))
+        res = FetchResult("f1", "ok", items=items, newest_ts=NOW + 3600)
+        m, valid = audit.measure_feed("candidate", self.feed, res, 100, self.rules, NOW, self.cfg, 48.0, "x")
+        self.assertEqual(m.newest_age_h, 100.0)
+        v, r = audit.classify(m, self.cfg)
+        self.assertEqual(v, "제외")
+        self.assertIn("정지", r)
+
+    def test_future_ratio_threshold_holds_candidate_feed(self):
+        items = [Item(f"기사 {i}", f"http://x/{i}", NOW - 3600) for i in range(7)]
+        items += [Item(f"미래 {i}", f"http://x/f{i}", NOW + 3600) for i in range(3)]
+        res = FetchResult("f1", "ok", items=items, newest_ts=NOW + 3600)
+        m, valid = audit.measure_feed("candidate", self.feed, res, 100, self.rules, NOW, self.cfg, 48.0, "x")
+        v, r = audit.classify(m, self.cfg)
+        self.assertEqual(v, "보류")
+        self.assertIn("시간대 의심", r)
+
+    def test_future_ratio_below_threshold_does_not_hold_feed(self):
+        items = [Item(f"기사 {i}", f"http://x/{i}", NOW - 3600) for i in range(9)]
+        items.append(Item("미래 1", "http://x/f1", NOW + 3600))
+        res = FetchResult("f1", "ok", items=items, newest_ts=NOW + 3600)
+        m, valid = audit.measure_feed("candidate", self.feed, res, 100, self.rules, NOW, self.cfg, 48.0, "x")
+        v, r = audit.classify(m, self.cfg)
+        self.assertEqual(v, "통과")
+
+    def test_naive_kst_auto_correction_passes(self):
+        xml = rss([(f"기사 {i}", NOW + 9 * 3600 - 600 * i) for i in range(10)])
+        res = parse_feed_bytes("f1", xml, NOW, 48.0)
+        m, valid = audit.measure_feed("candidate", self.feed, res, 100, self.rules, NOW, self.cfg, 48.0, "x")
+        self.assertEqual(m.future, 0)
+        v, r = audit.classify(m, self.cfg)
+        self.assertEqual(v, "통과")
+
+    def test_extreme_future_beyond_kst_held_as_suspicious_tz(self):
+        xml = rss([(f"미래기사 {i}", NOW + 12 * 3600 - 600 * i) for i in range(5)])
+        res = parse_feed_bytes("f1", xml, NOW, 48.0)
+        m, valid = audit.measure_feed("candidate", self.feed, res, 100, self.rules, NOW, self.cfg, 48.0, "x")
+        self.assertGreaterEqual(m.future, 3)
+        v, r = audit.classify(m, self.cfg)
+        self.assertEqual(v, "보류")
+        self.assertIn("시간대 의심", r)
+
+
+class UndatedItemAuditTests(unittest.TestCase):
+    def setUp(self):
+        self.rules = Rules.from_lists([], [], 3, 80)
+        self.cfg = audit.load_config()
+        self.feed = Feed(id="f1", pub="pub", name="pub", section="x", title="t", url="http://x/rss")
+
+    def test_undated_items_excluded_from_items_and_window(self):
+        items = [
+            Item("날짜 없는 기사 1", "http://x/1", None),
+            Item("날짜 없는 기사 2", "http://x/2", None),
+            Item("유효 기사 1", "http://x/3", NOW - 3600),
+        ]
+        res = FetchResult("f1", "ok", items=items, newest_ts=NOW - 3600)
+        valid, st, newest_valid_ts = audit.build_items(self.feed, res, self.rules, NOW, 48.0, 24.0)
+        self.assertEqual(len(valid), 1)
+        self.assertEqual(st["undated"], 2)
+        self.assertEqual(st["window"], 1)
+
+    def test_candidate_all_undated_held_for_insufficient_dates(self):
+        items = [Item(f"기사 {i}", f"http://x/{i}", None) for i in range(10)]
+        res = FetchResult("f1", "ok", items=items, newest_ts=None)
+        m, valid = audit.measure_feed("candidate", self.feed, res, 100, self.rules, NOW, self.cfg, 48.0, "x")
+        v, r = audit.classify(m, self.cfg)
+        self.assertEqual(v, "보류")
+        self.assertIn("날짜", r)
+
+    def test_current_feed_all_undated_marked_unjudged(self):
+        items = [Item(f"기사 {i}", f"http://x/{i}", None) for i in range(10)]
+        class MockFetcher:
+            def fetch(self, feed, **kw):
+                return FetchResult(feed.id, "ok", items=items, newest_ts=None)
+
+        settings = {"max_item_age_hours": 48.0, "max_workers": 2}
+        res = audit.run_audit(settings, self.cfg, [self.feed], [], MockFetcher(), self.rules, NOW)
+        m = res["measures"][0]
+        self.assertEqual(m.verdict, "판정 불가")
+        rep = audit.render_report(res, self.cfg, "2026-11-05")
+        self.assertIn("판정 불가 1", rep)
+
+
+class RobotsHandlingTests(unittest.TestCase):
+    def test_robots_explicit_disallow_blocked(self):
+        class MockResp:
+            status_code = 200
+            text = "User-agent: *\nDisallow: /\n"
+        class MockSession:
+            def get(self, url, **kw):
+                return MockResp()
+        cache = RobotsCache(MockSession(), "RadarBot", 10.0)
+        self.assertEqual(cache.check("http://example.com/rss"), "blocked")
+        cfg = audit.load_config()
+        m = audit.Measure(kind="candidate", feed=None, category="x", status="robots_blocked")
+        v, r = audit.classify(m, cfg)
+        self.assertEqual(v, "제외")
+        self.assertIn("robots.txt 불허", r)
+
+    def test_robots_403_treated_as_allowed_per_rfc9309(self):
+        class MockResp:
+            status_code = 403
+            text = "Forbidden"
+        class MockSession:
+            def get(self, url, **kw):
+                return MockResp()
+        cache = RobotsCache(MockSession(), "RadarBot", 10.0)
+        self.assertEqual(cache.check("http://example.com/rss"), "allowed")
+
+    def test_robots_429_treated_as_unavailable_with_retry(self):
+        calls = []
+        class MockResp:
+            status_code = 429
+            text = "Too Many Requests"
+            headers = {}
+        class MockSession:
+            def get(self, url, **kw):
+                calls.append(url)
+                return MockResp()
+        cache = RobotsCache(MockSession(), "RadarBot", 10.0)
+        self.assertEqual(cache.check("http://example.com/rss"), "unavailable")
+        self.assertEqual(len(calls), 2)  # 1회 재시도 확인
+
+    def test_robots_429_retry_after_delay_handled(self):
+        calls = []
+        class MockResp:
+            status_code = 429
+            text = "Too Many Requests"
+            headers = {"Retry-After": "0.05"}
+        class MockOkResp:
+            status_code = 200
+            text = "User-agent: *\nAllow: /\n"
+            headers = {}
+        class MockSession:
+            def get(self, url, **kw):
+                calls.append(url)
+                if len(calls) == 1:
+                    return MockResp()
+                return MockOkResp()
+        cache = RobotsCache(MockSession(), "RadarBot", 10.0)
+        self.assertEqual(cache.check("http://example.com/rss"), "allowed")
+        self.assertEqual(len(calls), 2)
+
+    def test_robots_429_large_retry_after_cached(self):
+        calls = []
+        class MockResp:
+            status_code = 429
+            text = "Too Many Requests"
+            headers = {"Retry-After": "30"}
+        class MockSession:
+            def get(self, url, **kw):
+                calls.append(url)
+                return MockResp()
+        cache = RobotsCache(MockSession(), "RadarBot", 10.0)
+        self.assertEqual(cache.check("http://example.com/rss1"), "unavailable")
+        self.assertEqual(len(calls), 1)  # > 2.0s retry_after는 즉시 대기하지 않고 캐시
+        # 같은 호스트의 다른 피드 요청 시 캐시 히트 (추가 네트워크 요청 없음)
+        self.assertEqual(cache.check("http://example.com/rss2"), "unavailable")
+        self.assertEqual(len(calls), 1)
+
+    def test_parse_retry_after_spec_coverage(self):
+        """Retry-After 파싱 검증: 정상 초, 정상/과거/잘못된 HTTP-date, 빈값, 비유한수, 과도한 숫자, 음수."""
+        # 1. 정상 초 단위 값
+        self.assertEqual(RobotsCache._parse_retry_after("30", default=60.0), 30.0)
+        self.assertEqual(RobotsCache._parse_retry_after("0.05", default=60.0), 0.05)
+        self.assertEqual(RobotsCache._parse_retry_after("0", default=60.0), 0.0)
+        # 유효한 음수는 0초로 처리
+        self.assertEqual(RobotsCache._parse_retry_after("-10", default=60.0), 0.0)
+        self.assertEqual(RobotsCache._parse_retry_after("-0.5", default=60.0), 0.0)
+
+        # 2. 정상 HTTP-date
+        future_str = email.utils.formatdate(time.time() + 100, usegmt=True)
+        val = RobotsCache._parse_retry_after(future_str, default=60.0)
+        self.assertTrue(95.0 <= val <= 105.0, f"Expected ~100s, got {val}")
+
+        # 3. 과거 HTTP-date
+        past_str = email.utils.formatdate(time.time() - 100, usegmt=True)
+        self.assertEqual(RobotsCache._parse_retry_after(past_str, default=60.0), 0.0)
+
+        # 4. 잘못된 HTTP-date 및 비숫자 문자열
+        self.assertEqual(RobotsCache._parse_retry_after("Wed, 99 Foo 9999 99:99:99 GMT", default=60.0), 60.0)
+        self.assertEqual(RobotsCache._parse_retry_after("invalid-date-string", default=60.0), 60.0)
+
+        # 5. 빈 문자열 및 공백, None
+        self.assertEqual(RobotsCache._parse_retry_after("", default=60.0), 60.0)
+        self.assertEqual(RobotsCache._parse_retry_after("   ", default=60.0), 60.0)
+        self.assertEqual(RobotsCache._parse_retry_after(None, default=60.0), 60.0)
+
+        # 6. inf, -inf, nan 등 유한하지 않은 숫자 (기본값 처리)
+        for non_finite in ("inf", "-inf", "nan", "NaN", "Infinity", "-Infinity"):
+            self.assertEqual(
+                RobotsCache._parse_retry_after(non_finite, default=60.0),
+                60.0,
+                f"Failed for non-finite input: {non_finite}",
+            )
+
+        # 7. 과도하게 큰 숫자 (24시간 = 86400초 상한 제한)
+        self.assertEqual(RobotsCache._parse_retry_after("1000000", default=60.0), 86400.0)
+        self.assertEqual(RobotsCache._parse_retry_after("1e30", default=60.0), 86400.0)
+        far_future_str = email.utils.formatdate(time.time() + 2000000, usegmt=True)
+        self.assertEqual(RobotsCache._parse_retry_after(far_future_str, default=60.0), 86400.0)
+
+    def test_robots_429_retry_after_sleep_value_mocked(self):
+        """재시도 시 time.sleep()에 전달되는 값 검증 (mock 활용으로 실제 대기 방지)."""
+        calls = []
+
+        class MockResp429:
+            status_code = 429
+            text = "Too Many Requests"
+            headers = {"Retry-After": "1.5"}
+
+        class MockOkResp:
+            status_code = 200
+            text = "User-agent: *\nAllow: /\n"
+            headers = {}
+
+        class MockSession:
+            def get(self, url, **kw):
+                calls.append(url)
+                if len(calls) == 1:
+                    return MockResp429()
+                return MockOkResp()
+
+        cache = RobotsCache(MockSession(), "RadarBot", 10.0)
+        with patch("time.sleep") as mock_sleep:
+            res = cache.check("http://example.com/rss")
+            self.assertEqual(res, "allowed")
+            self.assertEqual(len(calls), 2)
+            mock_sleep.assert_called_once_with(1.5)
+
+    def test_robots_500_unavailable_and_held(self):
+        class MockResp:
+            status_code = 500
+            text = "Server Error"
+            headers = {}
+        class MockSession:
+            def get(self, url, **kw):
+                return MockResp()
+        cache = RobotsCache(MockSession(), "RadarBot", 10.0)
+        self.assertEqual(cache.check("http://example.com/rss"), "unavailable")
+        cfg = audit.load_config()
+        m = audit.Measure(kind="candidate", feed=None, category="x", status="robots_unavailable")
+        v, r = audit.classify(m, cfg)
+        self.assertEqual(v, "보류")
+        self.assertIn("확인 불가", r)
+
+    def test_robots_retry_recovers_on_second_attempt(self):
+        calls = []
+        class MockSession:
+            def get(self, url, **kw):
+                calls.append(url)
+                if len(calls) == 1:
+                    resp = MockResp()
+                    resp.status_code = 500
+                    resp.headers = {}
+                    return resp
+                resp = MockResp()
+                resp.status_code = 200
+                resp.text = "User-agent: *\nAllow: /\n"
+                resp.headers = {}
+                return resp
+        class MockResp:
+            status_code = 200
+            text = ""
+            headers = {}
+        cache = RobotsCache(MockSession(), "RadarBot", 10.0)
+        res = cache.check("http://example.com/rss")
+        self.assertEqual(res, "allowed")
+        self.assertEqual(len(calls), 2)
+
+    def test_robots_transient_failure_cached_and_expires(self):
+        call_count = [0]
+        class MockResp:
+            def __init__(self, code, text):
+                self.status_code = code
+                self.text = text
+                self.headers = {}
+        class MockSession:
+            def get(self, url, **kw):
+                call_count[0] += 1
+                if call_count[0] <= 2:
+                    return MockResp(500, "Error")
+                return MockResp(200, "User-agent: *\nAllow: /\n")
+        # unavailable_ttl=0.1초 설정: 캐시 동작과 만료 후 복구 모두 검증
+        cache = RobotsCache(MockSession(), "RadarBot", 10.0, unavailable_ttl=0.1)
+        self.assertEqual(cache.check("http://example.com/rss1"), "unavailable")
+        self.assertEqual(call_count[0], 2)  # 1회 시도 + 1회 재시도
+
+        # 동일 호스트 재요청 시 일시 장애 캐시 히트 (불필요한 중복 요청 없음)
+        self.assertEqual(cache.check("http://example.com/rss2"), "unavailable")
+        self.assertEqual(call_count[0], 2)
+
+        # TTL(0.1초) 만료 후 재요청 시 다시 시도하여 정상 복구
+        time.sleep(0.12)
+        self.assertEqual(cache.check("http://example.com/rss3"), "allowed")
+        self.assertEqual(call_count[0], 3)
+
+    def test_robots_distinct_hosts_parallel_locking(self):
+        import time, threading
+        active_hosts = set()
+        active_lock = threading.Lock()
+        overlap_detected = False
+
+        class SlowSession:
+            def get(self, url, **kw):
+                nonlocal overlap_detected
+                host = url.split("/robots.txt")[0]
+                with active_lock:
+                    active_hosts.add(host)
+                    if len(active_hosts) > 1:
+                        overlap_detected = True
+                time.sleep(0.05)
+                with active_lock:
+                    active_hosts.remove(host)
+                class MockResp:
+                    status_code = 200
+                    text = "User-agent: *\nAllow: /\n"
+                return MockResp()
+
+        cache = RobotsCache(SlowSession(), "RadarBot", 10.0)
+        t1 = threading.Thread(target=lambda: cache.check("http://host1/rss"))
+        t2 = threading.Thread(target=lambda: cache.check("http://host2/rss"))
+        t1.start(); t2.start()
+        t1.join(); t2.join()
+        self.assertTrue(overlap_detected, "Requests to distinct hosts must execute in parallel without cross-blocking")
+
+
+class GranularStatusClassificationTests(unittest.TestCase):
+    def setUp(self):
+        self.cfg = audit.load_config()
+
+    def m(self, **kw):
+        base = dict(kind="candidate", feed=None, category="x", status="ok", items_window=20, newest_age_h=1.0,
+                    hangul=0.9, political_share=0.1, dup_near=0.2, n_eval=18)
+        base.update(kw)
+        return audit.Measure(**base)
+
+    def test_empty_feed(self):
+        v, r = audit.classify(self.m(status="empty", items_window=0, hangul=0.0), self.cfg)
+        self.assertEqual(v, "보류")
+        self.assertIn("빈 피드", r)
+        self.assertNotIn("비한국어", r)
+
+    def test_not_modified_classified_as_hold_not_non_korean(self):
+        v, r = audit.classify(self.m(status="not_modified", items_window=0, hangul=0.0), self.cfg)
+        self.assertEqual(v, "보류")
+        self.assertIn("변경 없음", r)
+        self.assertNotIn("비한국어", r)
+
+    def test_parse_error(self):
+        v, r = audit.classify(self.m(status="parse_error", error="XML SyntaxError"), self.cfg)
+        self.assertEqual(v, "보류")
+        self.assertIn("파싱 실패", r)
+
+    def test_timeout_and_5xx_held(self):
+        v, r = audit.classify(self.m(status="timeout"), self.cfg)
+        self.assertEqual(v, "보류")
+        self.assertIn("일시 장애", r)
+
+        v, r = audit.classify(self.m(status="http_error", http=503), self.cfg)
+        self.assertEqual(v, "보류")
+        self.assertIn("일시 장애", r)
+
+    def test_client_error_404_excluded(self):
+        v, r = audit.classify(self.m(status="http_error", http=404), self.cfg)
+        self.assertEqual(v, "제외")
+        self.assertIn("접근 실패", r)
+
+    def test_non_korean_excluded(self):
+        v, r = audit.classify(self.m(hangul=0.2), self.cfg)
+        self.assertEqual(v, "제외")
+        self.assertIn("비한국어", r)
 
 
 # ---- e2e: scripts/audit_feeds.py 를 별도 프로세스로 실행 (fixture, 네트워크 없음) ----
@@ -180,7 +622,7 @@ class E2ETests(unittest.TestCase):
                                  for p in data.rglob("*") if p.is_file()) if data.exists() else []
         cls.out = t / "out"
         cls.proc = subprocess.run(
-            [sys.executable, "-I", str(ROOT / "scripts/audit_feeds.py"), "--settings", str(t / "settings.yaml"),
+            [sys.executable, str(ROOT / "scripts/audit_feeds.py"), "--settings", str(t / "settings.yaml"),
              "--feeds", str(t / "feeds.yaml"), "--candidates", str(t / "cands.csv"), "--audit-config", str(t / "audit.yaml"),
              "--fixtures", str(fx), "--now", NOW_ISO, "--out-dir", str(cls.out)],
             capture_output=True, text=True, timeout=300)
@@ -312,7 +754,7 @@ class LiveHttpPolicyTests(unittest.TestCase):
             w.writerow(["막힘", "자동차", f"{base}/blocked.xml", "전체", "5", "신규"])
             w.writerow(["후보3", "자동차", f"{base}/c3.xml", "전체", "5", "신규"])
         out = t / "out"
-        proc = subprocess.run([sys.executable, "-I", str(ROOT / "scripts/audit_feeds.py"), "--feeds", str(t / "feeds.yaml"),
+        proc = subprocess.run([sys.executable, str(ROOT / "scripts/audit_feeds.py"), "--feeds", str(t / "feeds.yaml"),
                                "--candidates", str(t / "cands.csv"), "--out-dir", str(out)],
                               capture_output=True, text=True, timeout=120)
         self.assertEqual(proc.returncode, 0, proc.stderr[-600:])
@@ -369,6 +811,11 @@ class IndependenceTests(unittest.TestCase):
         self.assertIn("HttpFetcher(settings)", src)           # robots.txt·서버당 간격·타임아웃·재시도는 HttpFetcher 가 처리
         s = yaml.safe_load((ROOT / "config/settings.yaml").read_text(encoding="utf-8"))
         self.assertGreaterEqual(s["host_min_interval_sec"], 1.0)
+
+    def test_audit_workflow_shell_and_artifact_checks(self):
+        text = (ROOT / ".github/workflows/audit.yml").read_text(encoding="utf-8")
+        self.assertIn("shell: bash", text)
+        self.assertIn("if-no-files-found: error", text)
 
 
 if __name__ == "__main__":

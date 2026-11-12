@@ -25,6 +25,7 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - name: Audit
+        shell: bash
         run: python scripts/audit_feeds.py --out-dir audit-out | tee audit.log
       - name: Summary
         if: always()
@@ -36,3 +37,4 @@ jobs:
           name: audit-report
           path: audit-out/
           retention-days: 30
+          if-no-files-found: error
