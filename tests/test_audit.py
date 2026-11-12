@@ -273,6 +273,7 @@ class RobotsHandlingTests(unittest.TestCase):
         class MockResp:
             status_code = 429
             text = "Too Many Requests"
+            headers = {}
         class MockSession:
             def get(self, url, **kw):
                 calls.append(url)
@@ -281,10 +282,48 @@ class RobotsHandlingTests(unittest.TestCase):
         self.assertEqual(cache.check("http://example.com/rss"), "unavailable")
         self.assertEqual(len(calls), 2)  # 1회 재시도 확인
 
+    def test_robots_429_retry_after_delay_handled(self):
+        calls = []
+        class MockResp:
+            status_code = 429
+            text = "Too Many Requests"
+            headers = {"Retry-After": "0.05"}
+        class MockOkResp:
+            status_code = 200
+            text = "User-agent: *\nAllow: /\n"
+            headers = {}
+        class MockSession:
+            def get(self, url, **kw):
+                calls.append(url)
+                if len(calls) == 1:
+                    return MockResp()
+                return MockOkResp()
+        cache = RobotsCache(MockSession(), "RadarBot", 10.0)
+        self.assertEqual(cache.check("http://example.com/rss"), "allowed")
+        self.assertEqual(len(calls), 2)
+
+    def test_robots_429_large_retry_after_cached(self):
+        calls = []
+        class MockResp:
+            status_code = 429
+            text = "Too Many Requests"
+            headers = {"Retry-After": "30"}
+        class MockSession:
+            def get(self, url, **kw):
+                calls.append(url)
+                return MockResp()
+        cache = RobotsCache(MockSession(), "RadarBot", 10.0)
+        self.assertEqual(cache.check("http://example.com/rss1"), "unavailable")
+        self.assertEqual(len(calls), 1)  # > 2.0s retry_after는 즉시 대기하지 않고 캐시
+        # 같은 호스트의 다른 피드 요청 시 캐시 히트 (추가 네트워크 요청 없음)
+        self.assertEqual(cache.check("http://example.com/rss2"), "unavailable")
+        self.assertEqual(len(calls), 1)
+
     def test_robots_500_unavailable_and_held(self):
         class MockResp:
             status_code = 500
             text = "Server Error"
+            headers = {}
         class MockSession:
             def get(self, url, **kw):
                 return MockResp()
@@ -304,34 +343,48 @@ class RobotsHandlingTests(unittest.TestCase):
                 if len(calls) == 1:
                     resp = MockResp()
                     resp.status_code = 500
+                    resp.headers = {}
                     return resp
                 resp = MockResp()
                 resp.status_code = 200
                 resp.text = "User-agent: *\nAllow: /\n"
+                resp.headers = {}
                 return resp
         class MockResp:
             status_code = 200
             text = ""
+            headers = {}
         cache = RobotsCache(MockSession(), "RadarBot", 10.0)
         res = cache.check("http://example.com/rss")
         self.assertEqual(res, "allowed")
         self.assertEqual(len(calls), 2)
 
-    def test_robots_transient_failure_not_permanently_cached(self):
+    def test_robots_transient_failure_cached_and_expires(self):
         call_count = [0]
         class MockResp:
             def __init__(self, code, text):
                 self.status_code = code
                 self.text = text
+                self.headers = {}
         class MockSession:
             def get(self, url, **kw):
                 call_count[0] += 1
                 if call_count[0] <= 2:
                     return MockResp(500, "Error")
                 return MockResp(200, "User-agent: *\nAllow: /\n")
-        cache = RobotsCache(MockSession(), "RadarBot", 10.0)
-        self.assertEqual(cache.check("http://example.com/rss"), "unavailable")
-        self.assertEqual(cache.check("http://example.com/rss"), "allowed")
+        # unavailable_ttl=0.1초 설정: 캐시 동작과 만료 후 복구 모두 검증
+        cache = RobotsCache(MockSession(), "RadarBot", 10.0, unavailable_ttl=0.1)
+        self.assertEqual(cache.check("http://example.com/rss1"), "unavailable")
+        self.assertEqual(call_count[0], 2)  # 1회 시도 + 1회 재시도
+
+        # 동일 호스트 재요청 시 일시 장애 캐시 히트 (불필요한 중복 요청 없음)
+        self.assertEqual(cache.check("http://example.com/rss2"), "unavailable")
+        self.assertEqual(call_count[0], 2)
+
+        # TTL(0.1초) 만료 후 재요청 시 다시 시도하여 정상 복구
+        time.sleep(0.12)
+        self.assertEqual(cache.check("http://example.com/rss3"), "allowed")
+        self.assertEqual(call_count[0], 3)
 
     def test_robots_distinct_hosts_parallel_locking(self):
         import time, threading
@@ -638,7 +691,7 @@ class LiveHttpPolicyTests(unittest.TestCase):
         self.assertEqual(rows["막힘"]["status"], "robots_blocked")
         self.assertNotIn("/blocked.xml", paths)                    # 막힌 주소는 요청조차 하지 않는다
         self.assertEqual(rows["후보1"]["status"], "ok")
-        self.assertEqual(rows["후보1"]["response_ms"], "")      # 응답 시간 기록
+        self.assertNotEqual(rows["후보1"]["response_ms"], "")      # 응답 시간 기록
         stamps.sort()
         self.assertEqual(len(stamps), 3)                           # a.xml, c1.xml, c3.xml
         gaps = [b - a for a, b in zip(stamps, stamps[1:])]

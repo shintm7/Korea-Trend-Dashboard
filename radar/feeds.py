@@ -117,9 +117,10 @@ class RobotsCache:
     명시적 Disallow는 'blocked', robots.txt 없음(404 등)은 'allowed'로 처리한다.
     """
 
-    def __init__(self, session: requests.Session, ua: str, timeout: float):
+    def __init__(self, session: requests.Session, ua: str, timeout: float, unavailable_ttl: float = 60.0):
         self.session, self.ua, self.timeout = session, ua, timeout
-        self._cache: dict[str, tuple[str, urllib.robotparser.RobotFileParser | None]] = {}
+        self.unavailable_ttl = unavailable_ttl
+        self._cache: dict[str, tuple[str, urllib.robotparser.RobotFileParser | None, float | None]] = {}
         self._cache_lock = threading.Lock()
         self._host_locks: dict[str, threading.Lock] = {}
         self._host_locks_guard = threading.Lock()
@@ -128,14 +129,25 @@ class RobotsCache:
         with self._host_locks_guard:
             return self._host_locks.setdefault(host, threading.Lock())
 
+    def _get_cached(self, host: str, now: float) -> tuple[str, urllib.robotparser.RobotFileParser | None] | None:
+        with self._cache_lock:
+            cached = self._cache.get(host)
+            if cached is None:
+                return None
+            state, rp, expires_at = cached
+            if expires_at is not None and now >= expires_at:
+                self._cache.pop(host, None)
+                return None
+            return state, rp
+
     def check(self, url: str) -> str:
         """'allowed' | 'blocked' | 'unavailable'"""
         p = urllib.parse.urlsplit(url)
         host = f"{p.scheme}://{p.netloc}"
+        now = time.time()
 
-        # 캐시 히트 — 잠금 없이 빠르게 확인
-        with self._cache_lock:
-            cached = self._cache.get(host)
+        # 캐시 히트 — 만료되지 않은 캐시가 있으면 즉시 반환
+        cached = self._get_cached(host, now)
         if cached is not None:
             state, rp = cached
             if state != "ok":
@@ -146,45 +158,78 @@ class RobotsCache:
         host_lock = self._get_host_lock(host)
         with host_lock:
             # 잠금 대기 중 다른 스레드가 채웠을 수 있으므로 재확인
-            with self._cache_lock:
-                cached = self._cache.get(host)
+            now = time.time()
+            cached = self._get_cached(host, now)
             if cached is not None:
                 state, rp = cached
                 if state != "ok":
                     return state
                 return "allowed" if rp.can_fetch(self.ua, url) else "blocked"
 
-            state, rp = self._load(host)
-            # 일시 장애(unavailable)는 캐시하지 않는다 — 다음 호출 시 재시도 가능
-            if state != "unavailable":
-                with self._cache_lock:
-                    self._cache[host] = (state, rp)
+            state, rp, expires_at = self._load(host)
+            with self._cache_lock:
+                self._cache[host] = (state, rp, expires_at)
             if state != "ok":
                 return state
             return "allowed" if rp.can_fetch(self.ua, url) else "blocked"
 
-    def _load(self, host: str) -> tuple:
-        """robots.txt를 가져온다. 일시 장애면 1회 재시도 후 'unavailable'."""
+    @staticmethod
+    def _parse_retry_after(val: str | None, default: float = 60.0) -> float:
+        if not val:
+            return default
+        val = val.strip()
+        try:
+            return max(0.0, float(val))
+        except ValueError:
+            pass
+        try:
+            import email.utils
+            parsed = email.utils.parsedate_to_datetime(val)
+            return max(0.0, parsed.timestamp() - time.time())
+        except Exception:
+            pass
+        return default
+
+    def _load(self, host: str) -> tuple[str, urllib.robotparser.RobotFileParser | None, float | None]:
+        """robots.txt를 가져온다. 일시 장애는 재시도 및 Retry-After/TTL 동안 캐시."""
         for attempt in range(2):
             try:
                 r = self.session.get(host + "/robots.txt", timeout=self.timeout)
             except requests.RequestException:
                 if attempt == 0:
                     continue
-                return ("unavailable", None)
-            # 5xx 및 429(Too Many Requests): 일시 장애로 분류하여 1회 재시도 (RFC 9309 section 2.3.1.2)
-            if r.status_code >= 500 or r.status_code == 429:
+                return ("unavailable", None, time.time() + self.unavailable_ttl)
+
+            # 429 Too Many Requests: Retry-After 헤더 확인 후 재시도 또는 만료 캐시
+            if r.status_code == 429:
+                retry_header = getattr(r, "headers", {}).get("Retry-After") if hasattr(r, "headers") else None
+                if retry_header is not None:
+                    retry_after = self._parse_retry_after(retry_header, default=self.unavailable_ttl)
+                    if attempt == 0 and retry_after <= 2.0:
+                        time.sleep(retry_after)
+                        continue
+                    return ("unavailable", None, time.time() + retry_after)
+                else:
+                    if attempt == 0:
+                        time.sleep(1.0)
+                        continue
+                    return ("unavailable", None, time.time() + self.unavailable_ttl)
+
+            # 5xx 서버 오류: 1회 재시도 후 기본 TTL 동안 일시 장애 캐시
+            if r.status_code >= 500:
                 if attempt == 0:
                     continue
-                return ("unavailable", None)
+                return ("unavailable", None, time.time() + self.unavailable_ttl)
+
             rp = urllib.robotparser.RobotFileParser()
             # 4xx 클라이언트 오류 (403, 404, 410 등): RFC 9309 2.3.1.2에 따라 robots.txt 부재 및 제한 없음 간주
             if r.status_code >= 400:
                 rp.parse([])
             else:
                 rp.parse(r.text.splitlines())
-            return ("ok", rp)
-        return ("unavailable", None)
+            return ("ok", rp, None)
+
+        return ("unavailable", None, time.time() + self.unavailable_ttl)
 
 
 class HttpFetcher:
