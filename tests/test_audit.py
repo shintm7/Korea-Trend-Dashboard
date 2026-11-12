@@ -2,6 +2,7 @@
 수집 워크플로와의 독립성)."""
 import csv
 import datetime as dt
+import email.utils
 import hashlib
 import http.server
 import subprocess
@@ -10,6 +11,7 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 import yaml
@@ -318,6 +320,76 @@ class RobotsHandlingTests(unittest.TestCase):
         # 같은 호스트의 다른 피드 요청 시 캐시 히트 (추가 네트워크 요청 없음)
         self.assertEqual(cache.check("http://example.com/rss2"), "unavailable")
         self.assertEqual(len(calls), 1)
+
+    def test_parse_retry_after_spec_coverage(self):
+        """Retry-After 파싱 검증: 정상 초, 정상/과거/잘못된 HTTP-date, 빈값, 비유한수, 과도한 숫자, 음수."""
+        # 1. 정상 초 단위 값
+        self.assertEqual(RobotsCache._parse_retry_after("30", default=60.0), 30.0)
+        self.assertEqual(RobotsCache._parse_retry_after("0.05", default=60.0), 0.05)
+        self.assertEqual(RobotsCache._parse_retry_after("0", default=60.0), 0.0)
+        # 유효한 음수는 0초로 처리
+        self.assertEqual(RobotsCache._parse_retry_after("-10", default=60.0), 0.0)
+        self.assertEqual(RobotsCache._parse_retry_after("-0.5", default=60.0), 0.0)
+
+        # 2. 정상 HTTP-date
+        future_str = email.utils.formatdate(time.time() + 100, usegmt=True)
+        val = RobotsCache._parse_retry_after(future_str, default=60.0)
+        self.assertTrue(95.0 <= val <= 105.0, f"Expected ~100s, got {val}")
+
+        # 3. 과거 HTTP-date
+        past_str = email.utils.formatdate(time.time() - 100, usegmt=True)
+        self.assertEqual(RobotsCache._parse_retry_after(past_str, default=60.0), 0.0)
+
+        # 4. 잘못된 HTTP-date 및 비숫자 문자열
+        self.assertEqual(RobotsCache._parse_retry_after("Wed, 99 Foo 9999 99:99:99 GMT", default=60.0), 60.0)
+        self.assertEqual(RobotsCache._parse_retry_after("invalid-date-string", default=60.0), 60.0)
+
+        # 5. 빈 문자열 및 공백, None
+        self.assertEqual(RobotsCache._parse_retry_after("", default=60.0), 60.0)
+        self.assertEqual(RobotsCache._parse_retry_after("   ", default=60.0), 60.0)
+        self.assertEqual(RobotsCache._parse_retry_after(None, default=60.0), 60.0)
+
+        # 6. inf, -inf, nan 등 유한하지 않은 숫자 (기본값 처리)
+        for non_finite in ("inf", "-inf", "nan", "NaN", "Infinity", "-Infinity"):
+            self.assertEqual(
+                RobotsCache._parse_retry_after(non_finite, default=60.0),
+                60.0,
+                f"Failed for non-finite input: {non_finite}",
+            )
+
+        # 7. 과도하게 큰 숫자 (24시간 = 86400초 상한 제한)
+        self.assertEqual(RobotsCache._parse_retry_after("1000000", default=60.0), 86400.0)
+        self.assertEqual(RobotsCache._parse_retry_after("1e30", default=60.0), 86400.0)
+        far_future_str = email.utils.formatdate(time.time() + 2000000, usegmt=True)
+        self.assertEqual(RobotsCache._parse_retry_after(far_future_str, default=60.0), 86400.0)
+
+    def test_robots_429_retry_after_sleep_value_mocked(self):
+        """재시도 시 time.sleep()에 전달되는 값 검증 (mock 활용으로 실제 대기 방지)."""
+        calls = []
+
+        class MockResp429:
+            status_code = 429
+            text = "Too Many Requests"
+            headers = {"Retry-After": "1.5"}
+
+        class MockOkResp:
+            status_code = 200
+            text = "User-agent: *\nAllow: /\n"
+            headers = {}
+
+        class MockSession:
+            def get(self, url, **kw):
+                calls.append(url)
+                if len(calls) == 1:
+                    return MockResp429()
+                return MockOkResp()
+
+        cache = RobotsCache(MockSession(), "RadarBot", 10.0)
+        with patch("time.sleep") as mock_sleep:
+            res = cache.check("http://example.com/rss")
+            self.assertEqual(res, "allowed")
+            self.assertEqual(len(calls), 2)
+            mock_sleep.assert_called_once_with(1.5)
 
     def test_robots_500_unavailable_and_held(self):
         class MockResp:

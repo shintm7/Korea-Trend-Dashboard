@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import calendar
 import dataclasses
+import math
 import threading
 import time
 import urllib.parse
@@ -107,14 +108,18 @@ def parse_feed_bytes(feed_id: str, content: bytes, now: float, stale_hours: floa
 
 
 class RobotsCache:
-    """서버별 robots.txt를 한 번만 읽어 허용 여부를 판단한다.
+    """서버별 robots.txt를 조회해 허용 여부를 판단하고 캐시한다.
+
+    캐시 정책:
+      - 정상 응답: 2xx 본문 파싱 결과 및 4xx 부재 간주(RFC 9309 §2.3.1.3)는 만료 없이 세션 동안 유지.
+      - 일시적 오류: 5xx, 429, timeout, 네트워크 예외 등은 'unavailable' 상태를 TTL(기본 unavailable_ttl
+        또는 429 Retry-After) 동안만 임시 캐시하여 불필요한 재요청을 방지하고 만료 후 재시도 허용.
+      - 명시적 Disallow는 'blocked', robots.txt 부재(404 등)는 'allowed'로 처리.
 
     잠금 설계:
       _cache_lock  — _cache 딕셔너리 읽기/쓰기 보호(매우 짧게 보유).
       _host_locks  — 호스트별 잠금. 같은 호스트의 중복 요청은 직렬화하되,
                      다른 호스트 요청을 블로킹하지 않는다.
-    일시적인 5xx/timeout/네트워크 오류는 'unavailable'로 돌려주고 캐시하지 않는다.
-    명시적 Disallow는 'blocked', robots.txt 없음(404 등)은 'allowed'로 처리한다.
     """
 
     def __init__(self, session: requests.Session, ua: str, timeout: float, unavailable_ttl: float = 60.0):
@@ -174,18 +179,26 @@ class RobotsCache:
             return "allowed" if rp.can_fetch(self.ua, url) else "blocked"
 
     @staticmethod
-    def _parse_retry_after(val: str | None, default: float = 60.0) -> float:
+    def _parse_retry_after(val: str | None, default: float = 60.0, max_seconds: float = 86400.0) -> float:
         if not val:
             return default
         val = val.strip()
+        if not val:
+            return default
         try:
-            return max(0.0, float(val))
-        except ValueError:
+            sec = float(val)
+            if not math.isfinite(sec):
+                return default
+            return min(max(0.0, sec), max_seconds)
+        except (ValueError, OverflowError):
             pass
         try:
             import email.utils
             parsed = email.utils.parsedate_to_datetime(val)
-            return max(0.0, parsed.timestamp() - time.time())
+            delta = parsed.timestamp() - time.time()
+            if not math.isfinite(delta):
+                return default
+            return min(max(0.0, delta), max_seconds)
         except Exception:
             pass
         return default
@@ -222,7 +235,7 @@ class RobotsCache:
                 return ("unavailable", None, time.time() + self.unavailable_ttl)
 
             rp = urllib.robotparser.RobotFileParser()
-            # 4xx 클라이언트 오류 (403, 404, 410 등): RFC 9309 2.3.1.2에 따라 robots.txt 부재 및 제한 없음 간주
+            # 4xx 클라이언트 오류 (403, 404, 410 등): RFC 9309 §2.3.1.3에 따라 robots.txt 부재 및 제한 없음 간주
             if r.status_code >= 400:
                 rp.parse([])
             else:
