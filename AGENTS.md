@@ -7,7 +7,7 @@
 - 기본 브랜치: `main`
 - 현재 구현 단계: RSS 뉴스 헤드라인 키워드 수집·일일 집계·품질 기록
 - RSS: `config/feeds.yaml`의 활성 피드 62개, 14개 매체(README 기준; 작업 전 다시 확인)
-- 수집: `.github/workflows/collect.yml`의 매시간 `17 * * * *` 실행 + 외부 cron-job.org의 매시 47분 `workflow_dispatch` 보조 호출(설정이 유지되는지 작업 전 확인)
+- 수집: `.github/workflows/collect.yml`의 매시간 `17 * * * *` 실행 + 외부 cron-job.org의 매시 47분 `workflow_dispatch` 보조 호출(외부 설정의 현재 활성 여부와 정상 동작 여부는 별도 확인 필요)
 - 데이터: `data/daily/`의 날짜별 gzip 집계, `data/days.csv`, `data/health/`, `data/aliases/`
 - 핵심 코드: `radar/`, `scripts/collect.py`, `scripts/status.py`
 - RSS 감사: `.github/workflows/audit.yml` 수동 실행, `scripts/audit_feeds.py`, `radar/audit.py`, `config/audit.yaml`, `config/feeds_candidates.csv`
