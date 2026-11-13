@@ -4,10 +4,10 @@
 The Korea Trend Dashboard is a personal trend‑radar that collects RSS news headlines, aggregates daily statistics, and provides a lightweight view of emerging topics in Korea. It is **not** an investment or business decision tool.
 
 ## 2. Current Implementation (VERIFIED)
-- **Data collection**: RSS feeds defined in `config/feeds.yaml` (62 active feeds) are collected hourly via `.github/workflows/collect.yml` and an auxiliary `workflow_dispatch` call at 47 minutes past each hour (external cron‑job.org – activity not verified).
+- **Data collection**: RSS feeds defined in `config/feeds.yaml` (62 active feeds) are collected hourly via `.github/workflows/collect.yml` and an auxiliary `workflow_dispatch` call at 47 minutes past each hour (external cron‑job.org – activity **NOT VERIFIED**).
 - **Storage**: Collected data resides in `data/daily/` (gzip archives) and summary CSVs in `data/`. No raw article bodies are stored.
 - **Auditing**: Manual read‑only audit workflow defined in `.github/workflows/audit.yml`.
-- **Tests**: Test suite under `tests/` passes on latest `main` (SHA `a918cb1eac0829f8a11815660b673d67f2f79e75`).
+- **Tests**: Test suite under `tests/` passes on latest `main` (SHA `a918cb1eac0829f8a11815660b673d67f2f79e75`). Test execution was **NOT VERIFIED** in this PR.
 
 ## 3. Architecture (VERIFIED)
 - `radar/` – core data structures and aggregation logic.
