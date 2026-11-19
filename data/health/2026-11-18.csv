@@ -1,0 +1,63 @@
+feed_id,runs,ok_runs,stale_runs,items_new,last_status,last_error
+chosun-culture,27,27,0,11,ok,
+chosun-economy,27,27,0,307,ok,
+chosun-entertainment,27,27,0,426,ok,
+chosun-international,27,27,0,57,ok,
+chosun-society,27,27,0,104,ok,
+chosun-sports,27,27,0,119,ok,
+donga-culture,27,24,0,16,robots_unavailable,robots.txt를 확인하지 못함
+donga-culture-3,27,24,0,0,robots_unavailable,robots.txt를 확인하지 못함
+donga-culture-5,27,23,1,0,robots_unavailable,robots.txt를 확인하지 못함
+donga-economy,27,24,0,117,robots_unavailable,robots.txt를 확인하지 못함
+donga-health,27,24,0,0,robots_unavailable,robots.txt를 확인하지 못함
+donga-international,27,24,0,29,robots_unavailable,robots.txt를 확인하지 못함
+donga-medical,27,24,0,14,robots_unavailable,robots.txt를 확인하지 못함
+donga-people,27,24,0,4,robots_unavailable,robots.txt를 확인하지 못함
+donga-society,27,24,0,158,robots_unavailable,robots.txt를 확인하지 못함
+donga-sports,27,24,0,12,robots_unavailable,robots.txt를 확인하지 못함
+etnews-candidate,27,23,0,57,ok,
+hani-economy,27,27,0,38,ok,
+hani-entertainment,27,27,0,8,ok,
+hani-international,27,27,0,33,ok,
+hani-science,27,27,0,4,ok,
+hani-society,27,27,0,78,ok,
+hani-sports,27,27,0,14,ok,
+hankyung-candidate,27,27,0,414,ok,
+khan-culture,27,27,0,13,ok,
+khan-economy,27,27,0,61,ok,
+khan-international,27,27,0,49,ok,
+khan-society,27,27,0,94,ok,
+mk-candidate,27,27,0,377,ok,
+newsis-culture,27,27,0,25,ok,
+newsis-economy,27,27,0,132,ok,
+newsis-economy-2,27,27,0,54,ok,
+newsis-economy-3,27,27,0,103,ok,
+newsis-entertainment,27,27,0,73,ok,
+newsis-international,27,27,0,180,ok,
+newsis-society,27,27,0,316,ok,
+newsis-sports,27,27,0,52,ok,
+newsis-tech,27,27,0,52,ok,
+pressian-culture,27,25,0,1,ok,
+pressian-economy,27,25,0,3,ok,
+pressian-international,27,25,0,2,ok,
+pressian-society,27,25,0,11,ok,
+segye-culture,27,27,0,21,not_modified,
+segye-economy,27,27,0,54,not_modified,
+segye-entertainment,27,27,0,37,not_modified,
+segye-international,27,27,0,27,ok,
+segye-society,27,27,0,83,not_modified,
+segye-sports,27,27,0,19,not_modified,
+seoul-culture,27,27,0,7,ok,
+seoul-economy,27,27,0,50,ok,
+seoul-entertainment,27,27,0,3,ok,
+seoul-international,27,27,0,13,ok,
+seoul-society,27,27,0,100,ok,
+seoul-sports,27,27,0,8,ok,
+sisajournal-culture,27,27,0,3,not_modified,
+sisajournal-economy,27,27,0,12,not_modified,
+sisajournal-society,27,27,0,21,not_modified,
+womennews-culture,27,27,0,6,not_modified,
+womennews-economy,27,27,0,4,not_modified,
+womennews-international,27,27,0,6,not_modified,
+womennews-society,27,27,0,20,not_modified,
+yna-candidate,27,27,0,1174,ok,
