@@ -11,6 +11,7 @@ import hashlib
 import http.server
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -57,16 +58,25 @@ class Env:
         self.feeds_path.write_text(yaml.safe_dump({"feeds": feeds}, allow_unicode=True), encoding="utf-8")
         self.data, self.state, self.fx = self.tmp / "data", self.tmp / "state", self.tmp / "fx"
 
-    def collect(self, now, fixtures=True, expect_rc=0):
+    def collect(self, now, fixtures=True, expect_rc=0, defer_prune=False):
         cmd = [sys.executable, str(ROOT / "scripts" / "collect.py"), "--config", str(self.cfg_path),
                "--feeds", str(self.feeds_path), "--data-dir", str(self.data), "--state-dir", str(self.state),
                "--now", now]
         if fixtures:
             cmd += ["--fixtures", str(self.fx)]
+        if defer_prune:
+            cmd += ["--defer-prune"]
         env = {**os.environ, "NO_PROXY": "127.0.0.1,localhost", "no_proxy": "127.0.0.1,localhost"}
         p = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=240)
         assert p.returncode == expect_rc, f"rc={p.returncode}\n{p.stdout}\n{p.stderr}"
         return json.loads((self.state / "last_run.json").read_text(encoding="utf-8")), p.stdout
+
+    def prune_only(self, expect_rc=0):
+        cmd = [sys.executable, str(ROOT / "scripts" / "collect.py"), "--data-dir", str(self.data),
+               "--state-dir", str(self.state), "--prune-only"]
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=240)
+        assert p.returncode == expect_rc, f"rc={p.returncode}\n{p.stdout}\n{p.stderr}"
+        return p.stdout, p.stderr
 
 
 def serve(case, handler):
@@ -372,6 +382,146 @@ class CollectPathTests(unittest.TestCase):
         self.assertEqual(days["2026-11-02"]["max_gap_h"], "9.0")
         self.assertIn("gap_long", days["2026-11-02"]["flags"])
         self.assertEqual(days["2026-11-02"]["incomplete"], "1")
+
+
+class DeferredPruneE2ETests(unittest.TestCase):
+    def _load_state(self, env):
+        return json.loads(gzip.open(env.state / "state.json.gz", "rt", encoding="utf-8").read())
+
+    def _seed_day(self, env, day, hhmm, titles_a, titles_b):
+        t = at(day, "09:30")
+        write_feed(env.fx, "a-eco", [(title, t) for title in titles_a])
+        write_feed(env.fx, "b-eco", [(title, t) for title in titles_b])
+        return env.collect(f"{day}T{hhmm}:00+09:00", defer_prune=True)
+
+    def test_defer_prune_followed_by_prune_only(self):
+        env = Env([feed("a-eco"), feed("b-eco")])
+        self._seed_day(env, "2026-11-02", "10:00", ["편의점 디저트 신상 출시"], ["삼성전자 HBM4 양산 돌입"])
+        self._seed_day(env, "2026-11-03", "10:00", ["전기차 보조금 확대 발표"], ["겨울 패딩 판매 호조"])
+        s, _ = self._seed_day(env, "2026-11-04", "01:00", ["김장 비용 부담 커져"], ["배달 앱 수수료 논란"])
+
+        self.assertTrue(s["prune_deferred"])
+        self.assertTrue((env.data / "daily" / "2026-11-02.csv.gz").exists())
+        self.assertTrue((env.data / "health" / "2026-11-02.csv").exists())
+        self.assertIn("2026-11-02", {r["date"] for r in quality.read_days(env.data / "days.csv")})
+
+        st_before = self._load_state(env)
+        self.assertIn("2026-11-02", st_before["stats"])
+        self.assertTrue(any(v["day"] == "2026-11-02" for v in st_before["stories"].values()))
+        last_run_before = (env.state / "last_run.json").read_bytes()
+
+        out, _ = env.prune_only(expect_rc=0)
+        self.assertIn("[pruned] 2026-11-02", out)
+        self.assertEqual((env.state / "last_run.json").read_bytes(), last_run_before)
+
+        st_after = self._load_state(env)
+        self.assertNotIn("2026-11-02", st_after["stats"])
+        self.assertFalse(any(v["day"] == "2026-11-02" for v in st_after["stories"].values()))
+        self.assertIn("2026-11-03", st_after["stats"])
+        self.assertIn("2026-11-04", st_after["stats"])
+        self.assertTrue(any(v["day"] == "2026-11-03" for v in st_after["stories"].values()))
+
+    def test_push_failure_recovery_e2e(self):
+        env1 = Env([feed("a-eco"), feed("b-eco")])
+        self._seed_day(env1, "2026-11-02", "10:00", ["편의점 디저트 신상 출시"], ["삼성전자 HBM4 양산 돌입"])
+        self._seed_day(env1, "2026-11-03", "10:00", ["전기차 보조금 확대 발표"], ["겨울 패딩 판매 호조"])
+        self._seed_day(env1, "2026-11-04", "01:00", ["김장 비용 부담 커져"], ["배달 앱 수수료 논란"])
+
+        # push 실패: 다음 실행은 11/2가 없는 fresh data/ 와 미정리 state 캐시로 시작한다
+        env2 = Env([feed("a-eco"), feed("b-eco")])
+        env2.state.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(env1.state / "state.json.gz", env2.state / "state.json.gz")
+        self.assertFalse(env2.data.exists())
+
+        s2, _ = self._seed_day(env2, "2026-11-04", "02:00", ["김장 비용 부담 커져"], ["배달 앱 수수료 논란"])
+        self.assertIn("daily/2026-11-02.csv.gz", s2["written"])
+        self.assertTrue((env2.data / "health" / "2026-11-02.csv").exists())
+        self.assertIn("2026-11-02", {r["date"] for r in quality.read_days(env2.data / "days.csv")})
+
+        out, _ = env2.prune_only(expect_rc=0)
+        self.assertIn("[pruned] 2026-11-02", out)
+        st_after = self._load_state(env2)
+        self.assertNotIn("2026-11-02", st_after["stats"])
+        self.assertIn("2026-11-03", st_after["stats"])
+
+    def test_prune_failure_recovery_e2e(self):
+        env = Env([feed("a-eco"), feed("b-eco")])
+        self._seed_day(
+            env,
+            "2026-11-02",
+            "10:00",
+            ["두바이 쫀득 쿠키 열풍 편의점", "두바이쫀득쿠키 매출 급증"],
+            ["편의점 디저트 신상 출시"],
+        )
+        self._seed_day(env, "2026-11-04", "01:00", ["김장 비용 부담 커져"], ["배달 앱 수수료 논란"])
+
+        daily_gz = env.data / "daily" / "2026-11-02.csv.gz"
+        days_csv = env.data / "days.csv"
+        merge_log = env.data / "aliases" / "merge_log.csv"
+        self.assertTrue(daily_gz.exists())
+        self.assertTrue(merge_log.exists())
+
+        daily_before = daily_gz.read_bytes()
+        days_before = days_csv.read_bytes()
+        log_before = merge_log.read_bytes()
+
+        # prune 실패 후 다음 실행: data/는 이미 확정돼 있고 state에는 11/2가 남아 있음
+        self._seed_day(env, "2026-11-04", "02:00", ["김장 비용 부담 커져"], ["배달 앱 수수료 논란"])
+        self.assertEqual(daily_gz.read_bytes(), daily_before)
+        self.assertEqual(days_csv.read_bytes(), days_before)
+        self.assertEqual(merge_log.read_bytes(), log_before)
+
+        out, _ = env.prune_only(expect_rc=0)
+        self.assertIn("[pruned] 2026-11-02", out)
+        st_after = self._load_state(env)
+        self.assertNotIn("2026-11-02", st_after["stats"])
+        self.assertFalse(any(v["day"] == "2026-11-02" for v in st_after["stories"].values()))
+
+    def test_collect_failure_with_defer_prune_preserves_unpruned_state(self):
+        env = Env([feed("a-eco"), feed("b-eco")])
+        self._seed_day(env, "2026-11-02", "10:00", ["편의점 디저트 신상 출시"], ["삼성전자 HBM4 양산 돌입"])
+
+        # 다음 날 모든 피드 실패 (feeds_ok == 0 -> rc=1)
+        for f in env.fx.iterdir():
+            f.unlink()
+        (env.fx / "a-eco.timeout").write_text("")
+        (env.fx / "b-eco.http_error").write_text("")
+
+        s, _ = env.collect("2026-11-04T01:00:00+09:00", expect_rc=1, defer_prune=True)
+        self.assertEqual(s["feeds_ok"], 0)
+        self.assertTrue(s["prune_deferred"])
+
+        st = self._load_state(env)
+        self.assertIn("2026-11-02", st["stats"])
+        self.assertTrue(any(v["day"] == "2026-11-02" for v in st["stories"].values()))
+        self.assertEqual(st["stats"]["2026-11-04"]["runs"], 1)
+        self.assertEqual(st["stats"]["2026-11-04"]["ok_sum"], 0.0)
+
+    def test_prune_only_error_cases_and_mutually_exclusive_flags(self):
+        env = Env([feed("a-eco")])
+        state_file = env.state / "state.json.gz"
+
+        # 1) 상태 파일 없음 -> rc=1, 빈 상태 파일 생성 금지
+        _, err = env.prune_only(expect_rc=1)
+        self.assertTrue(err.strip())
+        self.assertFalse(state_file.exists())
+
+        # 2) 손상된 상태 파일 -> rc=1, 기존 파일 덮어쓰기 금지
+        env.state.mkdir(parents=True, exist_ok=True)
+        corrupt = b"corrupt-state-bytes"
+        state_file.write_bytes(corrupt)
+        _, err2 = env.prune_only(expect_rc=1)
+        self.assertTrue(err2.strip())
+        self.assertEqual(state_file.read_bytes(), corrupt)
+
+        # 3) --defer-prune 와 --prune-only 동시 지정 -> CLI 오류
+        p = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "collect.py"), "--data-dir", str(env.data),
+             "--state-dir", str(env.state), "--defer-prune", "--prune-only"],
+            capture_output=True, text=True, timeout=60,
+        )
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("--prune-only cannot be used with --defer-prune", p.stderr)
 
 
 if __name__ == "__main__":

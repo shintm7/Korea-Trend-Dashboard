@@ -232,9 +232,30 @@ def write_day(day: str, state: dict, cfg: dict, data_dir: Path, log=print) -> li
     return written
 
 
+def _is_finalized_on_disk(data_dir: Path, day: str, recorded: set[str], stats: dict | None) -> bool:
+    data_dir = Path(data_dir)
+    if day not in recorded:
+        return False
+    if store.find_daily(data_dir, day) is None:
+        return False
+    if stats and stats.get("runs", 0) > 0 and not (data_dir / "health" / f"{day}.csv").exists():
+        return False
+    return True
+
+
+def _prune_day(state: dict, day: str) -> bool:
+    before = len(state["stories"])
+    state["stories"] = {k: v for k, v in state["stories"].items() if v["day"] != day}
+    removed_story = len(state["stories"]) < before
+    removed_stat = day in state["stats"]
+    state["stats"].pop(day, None)
+    return removed_story or removed_stat
+
+
 def finalize_days(cfg: dict, state: dict, now: float, data_dir: Path, force_all: bool = False,
-                  log=print) -> list[str]:
-    """열려 있는 날(오늘·어제)을 제외하고 확정한다. 확정한 날의 상태는 지운다."""
+                  prune: bool = True, log=print) -> list[str]:
+    """열려 있는 날(오늘·어제)을 제외하고 확정한다. prune=True면 확정한 날의 상태는 지운다."""
+    data_dir = Path(data_dir)
     today = kst_day(now)
     keep = {kst_shift(today, -i) for i in range(cfg["state_keep_days"])}
     days = {s["day"] for s in state["stories"].values()} | set(state["stats"].keys())
@@ -243,12 +264,42 @@ def finalize_days(cfg: dict, state: dict, now: float, data_dir: Path, force_all:
     for day in sorted(days):
         if day in keep and not force_all:
             continue
+        stats = state["stats"].get(day)
+        if not force_all and _is_finalized_on_disk(data_dir, day, recorded, stats):
+            if prune:
+                _prune_day(state, day)
+                log(f"[finalize {day}] 이미 확정된 날이라 상태를 정리합니다 (파일 유지)")
+            else:
+                log(f"[finalize {day}] 이미 확정된 날이라 다시 쓰지 않습니다 (파일 유지)")
+            continue
         if day in recorded and day not in state["stats"] and not force_all:
-            # 이미 확정된 날의 낙오 기사만 남은 경우: 확정 파일을 덮어쓰지 않고 버린다
-            state["stories"] = {k: v for k, v in state["stories"].items() if v["day"] != day}
-            log(f"[finalize {day}] 이미 확정된 날이라 상태에 남은 기사를 버립니다 (파일 유지)")
+            # 이미 확정된 날의 낙오 기사만 남은 경우: 확정 파일을 덮어쓰지 않는다
+            if prune:
+                _prune_day(state, day)
+                log(f"[finalize {day}] 이미 확정된 날이라 상태에 남은 기사를 버립니다 (파일 유지)")
+            else:
+                log(f"[finalize {day}] 이미 확정된 날이라 상태에 남은 기사를 유지합니다 (파일 유지)")
             continue
         written += write_day(day, state, cfg, data_dir, log=log)
-        state["stories"] = {k: v for k, v in state["stories"].items() if v["day"] != day}
-        state["stats"].pop(day, None)
+        recorded.add(day)
+        if prune:
+            _prune_day(state, day)
     return written
+
+
+def prune_finalized_days(state: dict, data_dir: Path, days: list[str] | set[str] | None = None,
+                         log=print) -> list[str]:
+    """디스크(data/)에 확정 완료된 날만 상태에서 정리한다."""
+    data_dir = Path(data_dir)
+    recorded = {r["date"] for r in quality.read_days(data_dir / "days.csv")}
+    candidates = {s["day"] for s in state["stories"].values()} | set(state["stats"].keys())
+    if days is not None:
+        candidates &= set(days)
+    pruned: list[str] = []
+    for day in sorted(candidates):
+        stats = state["stats"].get(day)
+        if _is_finalized_on_disk(data_dir, day, recorded, stats):
+            if _prune_day(state, day):
+                pruned.append(day)
+                log(f"[prune {day}] 확정 완료된 날의 상태를 정리했습니다")
+    return pruned

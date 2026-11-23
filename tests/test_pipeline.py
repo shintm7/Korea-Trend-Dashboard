@@ -9,11 +9,13 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "tests"))
 
+from unittest.mock import patch
+
 from helpers import write_feed  # noqa: E402
-from radar import quality, store  # noqa: E402
+from radar import alias, quality, store  # noqa: E402
 from radar.extract import Rules  # noqa: E402
 from radar.feeds import Feed, FixtureFetcher  # noqa: E402
-from radar.pipeline import finalize_days, run_once  # noqa: E402
+from radar.pipeline import finalize_days, prune_finalized_days, run_once, write_day  # noqa: E402
 from radar.state import load_state, new_state, save_state  # noqa: E402
 from radar.util import KST, load_settings, read_wordlist  # noqa: E402
 
@@ -334,6 +336,187 @@ class NotModifiedTests(unittest.TestCase):
         run_once(CFG, self.F[:1], Fx(), self.state, at("2026-11-02", "10:00"), RULES, log=lambda *_: None)
         self.assertEqual(self.state["http"]["a-eco"],
                          {"etag": '"x"', "last_modified": "Mon", "newest_ts": at("2026-11-02", "10:00") - 3600})
+
+
+class DeferredPruneAndIdempotencyTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.fx, self.data = self.tmp / "fx", self.tmp / "data"
+        self.fetcher = FixtureFetcher(self.fx, CFG)
+        self.state = new_state()
+
+    def run_at(self, day, hhmm):
+        return run_once(CFG, FEEDS, self.fetcher, self.state, at(day, hhmm), RULES, log=lambda *_: None)
+
+    def seed_two_days(self):
+        write_feed(self.fx, "a-eco", [
+            ("두바이 쫀득 쿠키 열풍 편의점 품절", at("2026-11-02", "09:30")),
+            ("두바이쫀득쿠키 인기에 디저트 호황", at("2026-11-02", "10:00")),
+        ])
+        write_feed(self.fx, "b-eco", [("편의점 디저트 매출 급증", at("2026-11-02", "10:30"))])
+        self.run_at("2026-11-02", "11:00")
+
+        write_feed(self.fx, "a-eco", [("삼성전자 HBM4 양산 돌입", at("2026-11-03", "09:30"))])
+        write_feed(self.fx, "b-eco", [("전기차 보조금 확대 발표", at("2026-11-03", "10:00"))])
+        self.run_at("2026-11-03", "11:00")
+
+    def test_prune_true_vs_false_for_closed_day(self):
+        self.seed_two_days()
+        now = at("2026-11-04", "01:00")  # 11/2는 닫힌 날, 11/3은 열린 날
+
+        import copy
+        state_prune = copy.deepcopy(self.state)
+        data_prune = self.tmp / "data_prune"
+        w1 = finalize_days(CFG, state_prune, now, data_prune, prune=True, log=lambda *_: None)
+        self.assertTrue(w1)
+        self.assertFalse(any(v["day"] == "2026-11-02" for v in state_prune["stories"].values()))
+        self.assertNotIn("2026-11-02", state_prune["stats"])
+        self.assertTrue(any(v["day"] == "2026-11-03" for v in state_prune["stories"].values()))
+
+        state_defer = copy.deepcopy(self.state)
+        data_defer = self.tmp / "data_defer"
+        w2 = finalize_days(CFG, state_defer, now, data_defer, prune=False, log=lambda *_: None)
+        self.assertEqual(w2, w1)
+        self.assertTrue(any(v["day"] == "2026-11-02" for v in state_defer["stories"].values()))
+        self.assertIn("2026-11-02", state_defer["stats"])
+        self.assertTrue(any(v["day"] == "2026-11-03" for v in state_defer["stories"].values()))
+
+    def test_prune_finalized_days_only_prunes_verified_days_and_keeps_open_days(self):
+        self.seed_two_days()
+        finalize_days(CFG, self.state, at("2026-11-04", "01:00"), self.data, prune=False, log=lambda *_: None)
+        pruned = prune_finalized_days(self.state, self.data, log=lambda *_: None)
+        self.assertEqual(pruned, ["2026-11-02"])
+        self.assertFalse(any(v["day"] == "2026-11-02" for v in self.state["stories"].values()))
+        self.assertNotIn("2026-11-02", self.state["stats"])
+        self.assertTrue(any(v["day"] == "2026-11-03" for v in self.state["stories"].values()))
+        self.assertIn("2026-11-03", self.state["stats"])
+
+    def test_prune_finalized_days_skips_incomplete_disk_artifacts(self):
+        self.seed_two_days()
+        finalize_days(CFG, self.state, at("2026-11-04", "01:00"), self.data, prune=False, log=lambda *_: None)
+
+        # 1) health/{day}.csv 누락 (runs > 0 인데 없음)
+        health_file = self.data / "health" / "2026-11-02.csv"
+        health_bytes = health_file.read_bytes()
+        health_file.unlink()
+        self.assertEqual(prune_finalized_days(self.state, self.data, log=lambda *_: None), [])
+        self.assertIn("2026-11-02", self.state["stats"])
+        health_file.write_bytes(health_bytes)
+
+        # 2) daily/{day} 누락
+        daily_file = store.find_daily(self.data, "2026-11-02")
+        daily_bytes = daily_file.read_bytes()
+        daily_file.unlink()
+        self.assertEqual(prune_finalized_days(self.state, self.data, log=lambda *_: None), [])
+        self.assertIn("2026-11-02", self.state["stats"])
+        daily_file.write_bytes(daily_bytes)
+
+        # 3) days.csv 행 누락
+        days_file = self.data / "days.csv"
+        days_bytes = days_file.read_bytes()
+        days_file.write_text("date,stories\n", encoding="utf-8")
+        self.assertEqual(prune_finalized_days(self.state, self.data, log=lambda *_: None), [])
+        self.assertIn("2026-11-02", self.state["stats"])
+        days_file.write_bytes(days_bytes)
+
+        # 모두 갖춰지면 정상 정리
+        self.assertEqual(prune_finalized_days(self.state, self.data, log=lambda *_: None), ["2026-11-02"])
+
+    def test_push_failure_recovery_with_fresh_data_dir(self):
+        self.seed_two_days()
+        finalize_days(CFG, self.state, at("2026-11-04", "01:00"), self.data, prune=False, log=lambda *_: None)
+        # push 실패 시 다음 실행은 직전 데이터 커밋이 없는 새 data 폴더 + 미정리 상태 캐시로 시작한다
+        fresh_data = self.tmp / "fresh_data"
+        written = finalize_days(CFG, self.state, at("2026-11-04", "02:00"), fresh_data, prune=False, log=lambda *_: None)
+        self.assertIn("daily/2026-11-02.csv.gz", written)
+        self.assertTrue((fresh_data / "health" / "2026-11-02.csv").exists())
+        self.assertIn("2026-11-02", {r["date"] for r in quality.read_days(fresh_data / "days.csv")})
+        pruned = prune_finalized_days(self.state, fresh_data, log=lambda *_: None)
+        self.assertEqual(pruned, ["2026-11-02"])
+        self.assertNotIn("2026-11-02", self.state["stats"])
+
+    def test_refinalizing_recorded_day_skips_overwrite_and_preserves_files(self):
+        self.seed_two_days()
+        finalize_days(CFG, self.state, at("2026-11-04", "01:00"), self.data, prune=False, log=lambda *_: None)
+        daily_before = (self.data / "daily" / "2026-11-02.csv.gz").read_bytes()
+        days_before = (self.data / "days.csv").read_bytes()
+        log_before = (self.data / "aliases" / "merge_log.csv").read_bytes()
+
+        # prune=False 재확정: 덮어쓰지 않고 상태도 유지
+        logs_defer = []
+        written1 = finalize_days(CFG, self.state, at("2026-11-04", "02:00"), self.data, prune=False, log=logs_defer.append)
+        self.assertEqual(written1, [])
+        self.assertIn("2026-11-02", self.state["stats"])
+        self.assertEqual((self.data / "daily" / "2026-11-02.csv.gz").read_bytes(), daily_before)
+        self.assertEqual((self.data / "days.csv").read_bytes(), days_before)
+        self.assertEqual((self.data / "aliases" / "merge_log.csv").read_bytes(), log_before)
+
+        # prune=True 재확정: 덮어쓰지 않으면서 상태만 정리
+        written2 = finalize_days(CFG, self.state, at("2026-11-04", "03:00"), self.data, prune=True, log=lambda *_: None)
+        self.assertEqual(written2, [])
+        self.assertNotIn("2026-11-02", self.state["stats"])
+        self.assertFalse(any(v["day"] == "2026-11-02" for v in self.state["stories"].values()))
+        self.assertEqual((self.data / "daily" / "2026-11-02.csv.gz").read_bytes(), daily_before)
+        self.assertEqual((self.data / "days.csv").read_bytes(), days_before)
+        self.assertEqual((self.data / "aliases" / "merge_log.csv").read_bytes(), log_before)
+
+    def test_repeated_write_day_is_byte_identical(self):
+        # space/case 병합과 initials(3어절 + 1어절 줄임말) 모두 발생하도록 구성
+        self.state["stories"] = {
+            "2026-11-02:1": {"day": "2026-11-02", "pubs": ["a"], "kw": ["두바이 쫀득 쿠키", "ai"], "p": 0},
+            "2026-11-02:2": {"day": "2026-11-02", "pubs": ["a"], "kw": ["두바이 쫀득 쿠키", "AI"], "p": 0},
+            "2026-11-02:3": {"day": "2026-11-02", "pubs": ["b"], "kw": ["두바이 쫀득 쿠키", "AI"], "p": 0},
+            "2026-11-02:4": {"day": "2026-11-02", "pubs": ["b"], "kw": ["두바이쫀득쿠키"], "p": 0},
+            "2026-11-02:5": {"day": "2026-11-02", "pubs": ["a"], "kw": ["두쫀쿠"], "p": 0},
+            "2026-11-02:6": {"day": "2026-11-02", "pubs": ["b"], "kw": ["두쫀쿠"], "p": 0},
+            "2026-11-02:7": {"day": "2026-11-02", "pubs": ["a"], "kw": ["두쫀쿠"], "p": 0},
+        }
+        self.state["stats"]["2026-11-02"] = {
+            "runs": 2, "expected_sum": 6.0, "ok_sum": 6.0, "stale_runs": 0, "reset": False,
+            "feeds": {"a-eco": {"runs": 2, "ok": 2, "stale": 0, "items_new": 4, "last_status": "ok", "last_error": ""}},
+        }
+        write_day("2026-11-02", self.state, CFG, self.data, log=lambda *_: None)
+        files = [
+            self.data / "daily" / "2026-11-02.csv.gz",
+            self.data / "health" / "2026-11-02.csv",
+            self.data / "days.csv",
+            self.data / "aliases" / "merge_log.csv",
+            self.data / "aliases" / "canon.json",
+            self.data / "aliases" / "alias_map.json",
+        ]
+        for p in files:
+            self.assertTrue(p.exists(), str(p))
+        first_bytes = {p: p.read_bytes() for p in files}
+
+        write_day("2026-11-02", self.state, CFG, self.data, log=lambda *_: None)
+        for p in files:
+            self.assertEqual(p.read_bytes(), first_bytes[p], f"Changed after repeated write_day: {p.name}")
+
+    def test_save_state_cleans_up_tmp_and_preserves_existing_file_on_failure(self):
+        state_path = self.tmp / "state" / "state.json.gz"
+        tmp_path = state_path.with_suffix(state_path.suffix + ".tmp")
+        self.state["meta"]["marker"] = "original"
+        save_state(state_path, self.state)
+        original_bytes = state_path.read_bytes()
+
+        # 1) 직렬화/쓰기 중 실패
+        new_st = new_state()
+        new_st["meta"]["marker"] = "broken"
+        with patch("radar.state.json.dump", side_effect=OSError("disk full")):
+            with self.assertRaises(OSError):
+                save_state(state_path, new_st)
+        self.assertFalse(tmp_path.exists())
+        self.assertEqual(state_path.read_bytes(), original_bytes)
+
+        # 2) os.replace 단계 실패
+        with patch("radar.state.os.replace", side_effect=OSError("replace failed")):
+            with self.assertRaises(OSError):
+                save_state(state_path, new_st)
+        self.assertFalse(tmp_path.exists())
+        self.assertEqual(state_path.read_bytes(), original_bytes)
+        loaded, missing = load_state(state_path)
+        self.assertFalse(missing)
+        self.assertEqual(loaded["meta"]["marker"], "original")
 
 
 if __name__ == "__main__":

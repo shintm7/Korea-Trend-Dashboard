@@ -37,6 +37,11 @@ def save_state(path: str | Path, state: dict) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
-    with gzip.open(tmp, "wt", encoding="utf-8") as f:
-        json.dump(state, f, ensure_ascii=False, separators=(",", ":"))
-    os.replace(tmp, path)
+    try:
+        with gzip.open(tmp, "wt", encoding="utf-8") as f:
+            json.dump(state, f, ensure_ascii=False, separators=(",", ":"))
+        os.replace(tmp, path)
+    except Exception:
+        if tmp.exists():
+            tmp.unlink()
+        raise
