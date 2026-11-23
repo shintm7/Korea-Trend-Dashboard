@@ -16,7 +16,7 @@ sys.path.insert(0, str(ROOT))
 
 from radar.extract import Rules  # noqa: E402
 from radar.feeds import FixtureFetcher, HttpFetcher, load_feeds  # noqa: E402
-from radar.pipeline import finalize_days, run_once  # noqa: E402
+from radar.pipeline import finalize_days, prune_finalized_days, run_once  # noqa: E402
 from radar.quality import baseline_status, read_days  # noqa: E402
 from radar.state import load_state, save_state  # noqa: E402
 from radar.util import load_settings, read_wordlist  # noqa: E402
@@ -32,10 +32,28 @@ def main() -> int:
     ap.add_argument("--now", help="현재 시각을 고정 (ISO 8601, 시뮬레이션용)")
     ap.add_argument("--finalize-all", action="store_true", help="열린 날까지 모두 확정해서 쓴다")
     ap.add_argument("--include-disabled", action="store_true", help="enabled:false 피드도 포함 (테스트용)")
+    ap.add_argument("--defer-prune", action="store_true", help="확정한 날을 데이터 폴더에 쓴 뒤 상태에서 바로 지우지 않는다")
+    ap.add_argument("--prune-only", action="store_true", help="수집 없이 디스크에 확정 완료된 날만 상태에서 정리한다")
     args = ap.parse_args()
 
-    cfg = load_settings(args.config)
+    if args.prune_only and args.defer_prune:
+        ap.error("--prune-only cannot be used with --defer-prune")
+
     data_dir, state_path = Path(args.data_dir), Path(args.state_dir) / "state.json.gz"
+    if args.prune_only:
+        state, missing = load_state(state_path)
+        if missing:
+            print(f"! 상태 파일이 없거나 손상되어 정리할 수 없습니다: {state_path}", file=sys.stderr)
+            return 1
+        pruned = prune_finalized_days(state, data_dir)
+        if pruned:
+            save_state(state_path, state)
+            print("[pruned] " + ", ".join(pruned))
+        else:
+            print("[pruned] 정리할 확정 날짜 없음")
+        return 0
+
+    cfg = load_settings(args.config)
     now = dt.datetime.fromisoformat(args.now).timestamp() if args.now else time.time()
 
     rules = Rules.from_lists(read_wordlist(ROOT / "config" / "stopwords.txt"),
@@ -54,7 +72,7 @@ def main() -> int:
 
     fetcher = FixtureFetcher(args.fixtures, cfg) if args.fixtures else HttpFetcher(cfg, state["http"])
     summary = run_once(cfg, feeds, fetcher, state, now, rules, reset=reset)
-    written = finalize_days(cfg, state, now, data_dir, force_all=args.finalize_all)
+    written = finalize_days(cfg, state, now, data_dir, force_all=args.finalize_all, prune=not args.defer_prune)
     save_state(state_path, state)
 
     base = baseline_status(data_dir / "days.csv", cfg)
@@ -64,7 +82,8 @@ def main() -> int:
         print("[written] " + ", ".join(sorted(set(written))))
 
     out = Path(args.state_dir) / "last_run.json"
-    out.write_text(json.dumps({**summary, "written": written, "baseline": base}, ensure_ascii=False, indent=1),
+    out.write_text(json.dumps({**summary, "written": written, "baseline": base,
+                               "prune_deferred": args.defer_prune}, ensure_ascii=False, indent=1),
                    encoding="utf-8")
     # 정상 수집한 피드가 하나도 없으면 실패로 끝내 Actions에서 바로 보이게 한다
     return 1 if summary["feeds_expected"] and summary["feeds_ok"] == 0 else 0

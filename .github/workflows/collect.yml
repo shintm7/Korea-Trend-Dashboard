@@ -28,38 +28,62 @@ jobs:
 
       # 코드가 깨진 채 올라가면 data/ 를 훼손할 수 있으므로, 테스트가 통과해야만 수집한다 (실패하면 아래 단계는 모두 건너뜀)
       - name: Run tests
+        id: tests
         run: python -m unittest discover -s tests -v
 
       # 수집 상태(헤드라인 원문 없이 해시·키워드만)는 git이 아니라 캐시에 둔다
       - name: Restore state
+        id: restore_state
         uses: actions/cache/restore@v4
         with:
           path: state
-          key: radar-state-${{ github.run_id }}
+          key: radar-state-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: radar-state-
 
       - name: Collect
-        run: python scripts/collect.py | tee collect.log
+        id: collect
+        shell: bash
+        run: |
+          set -o pipefail
+          python scripts/collect.py --defer-prune 2>&1 | tee collect.log
+
+      # 날이 확정됐을 때만 data/ 가 바뀌므로 하루 한 번 정도만 커밋된다. push 가 성공한 뒤에만 상태를 정리한다
+      - name: Commit finalized data
+        id: commit_data
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          if ! git diff --cached --quiet; then
+            git commit -m "data: finalize days"
+            git pull --rebase
+            git push
+          fi
+
+      - name: Prune finalized state
+        id: prune_state
+        if: success() && steps.collect.outcome == 'success' && steps.commit_data.outcome == 'success'
+        shell: bash
+        run: |
+          set -o pipefail
+          python scripts/collect.py --prune-only 2>&1 | tee -a collect.log
 
       - name: Save state
-        if: always()
+        id: save_state
+        if: always() && (steps.collect.outcome == 'success' || steps.collect.outcome == 'failure') && hashFiles('state/state.json.gz') != ''
         uses: actions/cache/save@v4
         with:
           path: state
-          key: radar-state-${{ github.run_id }}
+          key: radar-state-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Summary
+        id: summary
         if: always()
+        shell: bash
         run: |
           echo '### 수집 결과' >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           cat collect.log >> "$GITHUB_STEP_SUMMARY" || true
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-
-      # 날이 확정됐을 때만 data/ 가 바뀌므로 하루 한 번 정도만 커밋된다
-      - name: Commit finalized data
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data
-          git diff --cached --quiet || { git commit -m "data: finalize days"; git pull --rebase; git push; }

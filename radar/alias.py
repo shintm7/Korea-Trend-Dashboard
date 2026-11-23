@@ -95,15 +95,52 @@ def apply_alias_map(rows: list[dict], alias_map: dict) -> list[dict]:
     return sorted(merged.values(), key=lambda r: (-r["articles"], -r["outlets"], r["keyword"]))
 
 
+def _log_key(row: dict) -> tuple[str, str, str, str]:
+    return (
+        str(row.get("date") or ""),
+        str(row.get("rule") or ""),
+        str(row.get("alias") or ""),
+        str(row.get("canonical") or ""),
+    )
+
+
 def append_log(path: str | Path, day: str, entries: list[dict]) -> None:
+    """merge_log.csv 에 새 병합 이력만 append-only 로 추가한다.
+
+    (date, rule, alias, canonical) 키가 이미 있거나 같은 배치 안에서 겹치면 처음 것만 남긴다.
+    """
     if not entries:
         return
     p = Path(path)
+    needs_header = (not p.exists()) or (p.stat().st_size == 0)
+    needs_newline = False
+    seen: set[tuple[str, str, str, str]] = set()
+
+    if not needs_header:
+        with open(p, "rb") as raw:
+            raw.seek(-1, 2)
+            needs_newline = raw.read(1) != b"\n"
+        with open(p, "r", encoding="utf-8", newline="") as f:
+            for row in csv.DictReader(f):
+                seen.add(_log_key(row))
+
+    to_write: list[dict] = []
+    for e in entries:
+        row = {"date": day, **e}
+        key = _log_key(row)
+        if key in seen:
+            continue
+        seen.add(key)
+        to_write.append(row)
+
+    if not to_write:
+        return
+
     p.parent.mkdir(parents=True, exist_ok=True)
-    new = not p.exists()
     with open(p, "a", encoding="utf-8", newline="") as f:
+        if needs_newline:
+            f.write("\r\n")
         w = csv.DictWriter(f, fieldnames=LOG_FIELDS)
-        if new:
+        if needs_header:
             w.writeheader()
-        for e in entries:
-            w.writerow({"date": day, **e})
+        w.writerows(to_write)
