@@ -232,15 +232,20 @@ def write_day(day: str, state: dict, cfg: dict, data_dir: Path, log=print) -> li
     return written
 
 
-def _is_finalized_on_disk(data_dir: Path, day: str, recorded: set[str], stats: dict | None) -> bool:
+def _missing_finalized_artifacts(data_dir: Path, day: str, recorded: set[str], stats: dict | None) -> list[str]:
     data_dir = Path(data_dir)
+    missing: list[str] = []
     if day not in recorded:
-        return False
+        missing.append("days.csv")
     if store.find_daily(data_dir, day) is None:
-        return False
+        missing.append(f"daily/{day}.csv(.gz)")
     if stats and stats.get("runs", 0) > 0 and not (data_dir / "health" / f"{day}.csv").exists():
-        return False
-    return True
+        missing.append(f"health/{day}.csv")
+    return missing
+
+
+def _is_finalized_on_disk(data_dir: Path, day: str, recorded: set[str], stats: dict | None) -> bool:
+    return not _missing_finalized_artifacts(data_dir, day, recorded, stats)
 
 
 def _prune_day(state: dict, day: str) -> bool:
@@ -265,20 +270,19 @@ def finalize_days(cfg: dict, state: dict, now: float, data_dir: Path, force_all:
         if day in keep and not force_all:
             continue
         stats = state["stats"].get(day)
-        if not force_all and _is_finalized_on_disk(data_dir, day, recorded, stats):
+        missing = _missing_finalized_artifacts(data_dir, day, recorded, stats)
+        if not force_all and not missing:
             if prune:
                 _prune_day(state, day)
                 log(f"[finalize {day}] 이미 확정된 날이라 상태를 정리합니다 (파일 유지)")
             else:
                 log(f"[finalize {day}] 이미 확정된 날이라 다시 쓰지 않습니다 (파일 유지)")
             continue
-        if day in recorded and day not in state["stats"] and not force_all:
-            # 이미 확정된 날의 낙오 기사만 남은 경우: 확정 파일을 덮어쓰지 않는다
-            if prune:
-                _prune_day(state, day)
-                log(f"[finalize {day}] 이미 확정된 날이라 상태에 남은 기사를 버립니다 (파일 유지)")
-            else:
-                log(f"[finalize {day}] 이미 확정된 날이라 상태에 남은 기사를 유지합니다 (파일 유지)")
+        if not force_all and day in recorded:
+            log(
+                f"[finalize {day}] 경고: 이미 days.csv에 기록된 날이지만 필수 확정 파일이 누락되어 "
+                f"덮어쓰지 않고 상태를 유지합니다 (누락: {', '.join(missing)})"
+            )
             continue
         written += write_day(day, state, cfg, data_dir, log=log)
         recorded.add(day)
