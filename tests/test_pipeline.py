@@ -629,6 +629,37 @@ class DeferredPruneAndIdempotencyTests(unittest.TestCase):
         self.assertIn("health/2026-11-02.csv", written)
         self.assertTrue(health_file.exists())
 
+    def test_recorded_day_with_missing_daily_and_no_stats_does_not_overwrite_or_prune(self):
+        self.seed_two_days()
+        finalize_days(CFG, self.state, at("2026-11-04", "01:00"), self.data, prune=False, log=lambda *_: None)
+
+        snapshot = self._snapshot_files([
+            "days.csv",
+            "health/2026-11-02.csv",
+            "aliases/canon.json",
+            "aliases/alias_map.json",
+            "aliases/merge_log.csv",
+        ])
+        (self.data / "daily" / "2026-11-02.csv.gz").unlink()
+        self.state["stats"].pop("2026-11-02")
+        self.assertTrue(any(v["day"] == "2026-11-02" for v in self.state["stories"].values()))
+
+        state_stories_before = copy.deepcopy(self.state["stories"])
+        state_stats_before = copy.deepcopy(self.state["stats"])
+
+        logs: list[str] = []
+        with patch("radar.pipeline.write_day", wraps=write_day) as mock_write_day:
+            written = finalize_days(CFG, self.state, at("2026-11-04", "02:00"), self.data, prune=True, log=logs.append)
+
+        mock_write_day.assert_not_called()
+        self.assertEqual(written, [])
+        self.assertIsNone(store.find_daily(self.data, "2026-11-02"))
+        self._assert_files_unchanged(snapshot)
+        self.assertEqual(self.state["stories"], state_stories_before)
+        self.assertEqual(self.state["stats"], state_stats_before)
+        self.assertNotIn("2026-11-02", self.state["stats"])
+        self.assertTrue(any("2026-11-02" in m and "daily/2026-11-02.csv(.gz)" in m for m in logs), logs)
+
 
 if __name__ == "__main__":
     unittest.main()
