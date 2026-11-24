@@ -1,3 +1,4 @@
+import copy
 import csv
 import datetime as dt
 import sys
@@ -517,6 +518,116 @@ class DeferredPruneAndIdempotencyTests(unittest.TestCase):
         loaded, missing = load_state(state_path)
         self.assertFalse(missing)
         self.assertEqual(loaded["meta"]["marker"], "original")
+
+    def _snapshot_files(self, relpaths: list[str]) -> dict[Path, bytes]:
+        """Verify relative paths exist under self.data and capture their exact bytes."""
+        paths = [self.data / rel for rel in relpaths]
+        for p in paths:
+            self.assertTrue(p.exists(), str(p))
+        return {p: p.read_bytes() for p in paths}
+
+    def _assert_files_unchanged(self, snapshot: dict[Path, bytes]) -> None:
+        """Assert every snapshotted file remains byte-for-byte identical."""
+        for p, expected in snapshot.items():
+            self.assertEqual(p.read_bytes(), expected, f"Unexpectedly modified: {p}")
+
+    def test_recorded_day_with_missing_health_does_not_overwrite_or_prune(self):
+        self.seed_two_days()
+        finalize_days(CFG, self.state, at("2026-11-04", "01:00"), self.data, prune=False, log=lambda *_: None)
+
+        health_file = self.data / "health" / "2026-11-02.csv"
+        self.assertTrue(health_file.exists())
+        snapshot = self._snapshot_files([
+            "daily/2026-11-02.csv.gz",
+            "days.csv",
+            "aliases/canon.json",
+            "aliases/alias_map.json",
+            "aliases/merge_log.csv",
+        ])
+
+        self.assertGreater(self.state["stats"]["2026-11-02"]["runs"], 0)
+        target_key = next(k for k, v in self.state["stories"].items() if v["day"] == "2026-11-02")
+        self.state["stories"][target_key]["kw"] = ["변조된 키워드"]
+        self.state["stories"]["2026-11-02:extra"] = {
+            "day": "2026-11-02", "pubs": ["a"], "kw": ["추가 변조 키워드"], "p": 0,
+        }
+        health_file.unlink()
+
+        state_stories_before = copy.deepcopy(self.state["stories"])
+        state_stats_before = copy.deepcopy(self.state["stats"]["2026-11-02"])
+        open_stats_before = copy.deepcopy(self.state["stats"]["2026-11-03"])
+
+        for prune_flag, run_ts in ((True, at("2026-11-04", "02:00")), (False, at("2026-11-04", "03:00"))):
+            logs: list[str] = []
+            written = finalize_days(CFG, self.state, run_ts, self.data, prune=prune_flag, log=logs.append)
+            self.assertEqual(written, [])
+            self._assert_files_unchanged(snapshot)
+            self.assertFalse(health_file.exists())
+            self.assertEqual(self.state["stories"], state_stories_before)
+            self.assertEqual(self.state["stats"]["2026-11-02"], state_stats_before)
+            self.assertEqual(self.state["stats"]["2026-11-03"], open_stats_before)
+            self.assertTrue(any("2026-11-02" in m and "health/2026-11-02.csv" in m for m in logs), logs)
+
+        self.assertEqual(prune_finalized_days(self.state, self.data, log=lambda *_: None), [])
+        self.assertEqual(self.state["stories"], state_stories_before)
+        self.assertEqual(self.state["stats"]["2026-11-02"], state_stats_before)
+        self.assertEqual(self.state["stats"]["2026-11-03"], open_stats_before)
+
+    def test_recorded_day_with_missing_daily_does_not_overwrite_or_prune(self):
+        self.seed_two_days()
+        finalize_days(CFG, self.state, at("2026-11-04", "01:00"), self.data, prune=False, log=lambda *_: None)
+
+        snapshot = self._snapshot_files([
+            "days.csv",
+            "health/2026-11-02.csv",
+            "aliases/canon.json",
+            "aliases/alias_map.json",
+            "aliases/merge_log.csv",
+        ])
+        state_stories_before = copy.deepcopy(self.state["stories"])
+        state_stats_before = copy.deepcopy(self.state["stats"]["2026-11-02"])
+
+        (self.data / "daily" / "2026-11-02.csv.gz").unlink()
+
+        logs: list[str] = []
+        written = finalize_days(CFG, self.state, at("2026-11-04", "02:00"), self.data, prune=True, log=logs.append)
+        self.assertEqual(written, [])
+        self.assertIsNone(store.find_daily(self.data, "2026-11-02"))
+        self._assert_files_unchanged(snapshot)
+        self.assertEqual(self.state["stories"], state_stories_before)
+        self.assertEqual(self.state["stats"]["2026-11-02"], state_stats_before)
+        self.assertTrue(any("2026-11-02" in m and "daily/2026-11-02.csv(.gz)" in m for m in logs), logs)
+
+    def test_recorded_day_with_zero_runs_does_not_require_health_file(self):
+        self.seed_two_days()
+        finalize_days(CFG, self.state, at("2026-11-04", "01:00"), self.data, prune=False, log=lambda *_: None)
+
+        self.state["stats"]["2026-11-02"]["runs"] = 0
+        health_file = self.data / "health" / "2026-11-02.csv"
+        health_file.unlink()
+        snapshot = self._snapshot_files(["daily/2026-11-02.csv.gz", "days.csv"])
+
+        logs: list[str] = []
+        written = finalize_days(CFG, self.state, at("2026-11-04", "02:00"), self.data, prune=True, log=logs.append)
+        self.assertEqual(written, [])
+        self._assert_files_unchanged(snapshot)
+        self.assertFalse(health_file.exists())
+        self.assertNotIn("2026-11-02", self.state["stats"])
+        self.assertFalse(any(v["day"] == "2026-11-02" for v in self.state["stories"].values()))
+
+    def test_force_all_still_rewrites_recorded_day_with_missing_health(self):
+        self.seed_two_days()
+        finalize_days(CFG, self.state, at("2026-11-04", "01:00"), self.data, prune=False, log=lambda *_: None)
+
+        health_file = self.data / "health" / "2026-11-02.csv"
+        health_file.unlink()
+
+        written = finalize_days(
+            CFG, self.state, at("2026-11-04", "02:00"), self.data,
+            force_all=True, prune=False, log=lambda *_: None,
+        )
+        self.assertIn("health/2026-11-02.csv", written)
+        self.assertTrue(health_file.exists())
 
 
 if __name__ == "__main__":
